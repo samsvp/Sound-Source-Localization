@@ -8,8 +8,6 @@ import numpy as np
 class fast_beamforming:
 
 	def __init__(self, coord, fs, num_samples):
-		"""
-		"""
 		sound_speed  = 1491.24 # m/s
 		
 		# Delay matrix builder
@@ -58,6 +56,10 @@ class fast_beamforming:
 
 
 	def ffb(self, signal):
+		"""
+		Applies the time domain beamforming and the frequency domain
+		beamforming to the result to get the pinger position 
+		"""
 		max_squared_index = self.tb(signal)
 
 		
@@ -122,9 +124,6 @@ class fast_beamforming:
 				axis=0)).real
 
 		squared_sum = ((result.sum(1)) ** 2).sum(0)
-
-		print("result",result.shape)
-		print("shape",squared_sum.shape)
 
 		az, el = np.unravel_index(squared_sum.argmax(), squared_sum.shape)
 
