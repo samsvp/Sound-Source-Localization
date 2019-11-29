@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import division
 
@@ -23,12 +23,11 @@ coord = np.array((
                             [-distance,0,0]
                 ))
 
-y, fs = sf.read('wavs/110118_002.WAV')
+y, fs = sf.read('wavs/110118_020.WAV')
 
 y = y[:,:4]	
 
-y_ref = y																																																								
-
+y_ref = y																			
 amount_to_read = 256
 
 block_beginning_point = 0
@@ -59,10 +58,37 @@ while block_ending_point < y.shape[0]:
 	
 	start = time.time()
 	rms = b.ffb(signal)
-	end = time.time()
-	print(end - start)
+	print(time.time()-start)
 	
 	print(rms)
 
 	break
 
+
+times = []
+for i in range(200):
+	start = time.time()
+	rms = b.ffb(signal)
+	times.append(time.time()-start)
+print("Fast beamgorming (200 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+
+print("")
+
+times = []
+for i in range(200):
+	start = time.time()
+	rms = b.fb(signal)
+	times.append(time.time()-start)
+print("Frequency beamgorming (200 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+
+print("")
+
+times = []
+for i in range(200):
+	start = time.time()
+	rms = b.tb(signal)
+	times.append(time.time()-start)
+print("Time beamgorming (200 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
