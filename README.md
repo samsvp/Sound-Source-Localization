@@ -25,6 +25,11 @@ The algorithm results are the same as the frequency domain beamforming but at mo
 
 ## Speed test
 
-Running each of the beamforming algorithms on a Intel(R) Core(TM) i3-5020U CPU @ 2.20GHz the following times where given.
+Running each of the beamforming algorithms 200 times for the same signal source on a Intel(R) Core(TM) i3-5020U CPU @ 2.20GHz the following times, in seconds, were given.
 
+|      | Fast | Frequency | Time |
+|------|------|-----------|------|
+| mean | 0.47 |   1.02    | 0.45 |
+| max  | 0.52 |   1.08    | 0.67 |
+| min  | 0.46 |   1.01    | 0.43 |
 
