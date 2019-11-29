@@ -2,11 +2,13 @@
 
 The fast beamforming is a fast implementation of the frequency domain beamforming algorithm.
 
+
 ## Frequency Domain Beamforming
 
 The frequency domain beamforming algorithm returns the azimuth and elevation angles of a signal source given an array of sensors that capture the signal.
 
 The frequency beamforming works by multiplying the fast fourier transform (FFT) of the signal given by each sensor with the FFT of the delays matrix associated with the sensors position array and the angles to look for the source, taking the inverse FFT of the result and summing along the hydrophones axis. The final azimuth and elevation angles is given by getting the argmax of the squared sum of result.
+
 
 ## Time Domain Beamforming
 
@@ -23,6 +25,7 @@ To speed up the beamforming algorithm while maintaing the same accuracy of the f
 
 The algorithm results are the same as the frequency domain beamforming but at more than half the speed.
 
+
 ## Speed test
 
 Running each of the beamforming algorithms 200 times for the same signal source on a Intel(R) Core(TM) i3-5020U CPU @ 2.20GHz the following times, in seconds, were given.
@@ -33,3 +36,32 @@ Running each of the beamforming algorithms 200 times for the same signal source 
 | max  | 0.52 |   1.08    | 0.67 |
 | min  | 0.46 |   1.01    | 0.43 |
 
+
+## Usage
+
+```python
+import fast_beamforming as fb
+
+distance = 3 * 10**-2 # Distance between sensors in m
+
+# XY matrix of the sensors coordinates
+coord = np.array((
+                [0,0,distance],
+                [0,0,0],
+                [0,0,-distance],
+                [-distance,0,0]
+    ))
+
+fs = 2e+6 # Signal sampling rate
+
+amount_read = 256 # Signal size
+
+# Create an object with the signal and sensor characteristics
+b = fb.fast_beamforming(coord, fs, amount_to_read)
+
+signal = 10 * np.random.randn(256, 4) # Signal to read
+
+elevation, azimuth = b.ffb(signal)
+
+print(elevation, azimuth)
+```
