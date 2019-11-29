@@ -70,7 +70,7 @@ for i in range(200):
 	start = time.time()
 	rms = b.ffb(signal)
 	times.append(time.time()-start)
-print("Fast beamgorming (200 iterations):")
+print("Fast beamforming (200 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
 print("")
@@ -80,7 +80,7 @@ for i in range(200):
 	start = time.time()
 	rms = b.fb(signal)
 	times.append(time.time()-start)
-print("Frequency beamgorming (200 iterations):")
+print("Frequency beamforming (200 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
 print("")
@@ -90,5 +90,5 @@ for i in range(200):
 	start = time.time()
 	rms = b.tb(signal)
 	times.append(time.time()-start)
-print("Time beamgorming (200 iterations):")
+print("Time beamforming (200 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
