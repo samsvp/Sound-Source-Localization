@@ -64,7 +64,7 @@ class fast_beamforming:
 		# Apply the frequency domain beamforming
 		offset = self.fb(signal, delays, 1)
 
-		elevation, azimuth = (np.unique(angles[0])[0] + offset[0], np.unique(angles[1])[0] + offset[1])
+		elevation, azimuth = (np.min(angles[0]) + offset[0], np.min(angles[1]) + offset[1])
 
 		return elevation, azimuth
 
