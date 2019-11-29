@@ -43,16 +43,6 @@ class fast_beamforming:
 		# Shape (num_samples // 2, hydrophone_number, theta.shape, phi.shape)	
 		self.freq_delays = np.array([np.exp(2j * np.pi * fs * deltas * k / num_samples) 
 							for k in range(num_samples // 2)]) 
-							
-
-	def _normalize(self, arr, tile=False):
-		"""
-		Makes every element of the array arr appear the same amount of times
-		"""
-		unique, counts = np.unique(arr, return_counts=True)
-		return np.tile(unique, np.max(counts)) if tile else \
-			   np.repeat(unique, np.max(counts))
-				
 
 
 	def ffb(self, signal):
