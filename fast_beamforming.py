@@ -51,20 +51,23 @@ class fast_beamforming:
 		Applies the time domain beamforming and the frequency domain
 		beamforming to the result to get the pinger position 
 		"""
-		max_squared_index = self.tb(signal)
+		angles = self.tb(signal)
 
 		
 		# Get the correspondent delays
-		# The azimuth and elevation are switched between the time and frequency domain
+		# The azimuth and elevation are switched between the time
+		# and frequency domain
 		delays = self.freq_delays[:,:,
-					min(max_squared_index[1]):max(max_squared_index[1]), 
-					min(max_squared_index[0]):max(max_squared_index[0])
+					min(angles[1]):max(angles[1]), 
+					min(angles[0]):max(angles[0])
 				]
 
 		# Apply the frequency domain beamforming
 		offset = self.fb(signal, delays, 1)
 
-		return max_squared_index[0][0] + offset[0], max_squared_index[1][0] + offset[1]
+		elevation, azimuth = (angles[0][0] + offset[0], angles[1][0] + offset[1])
+
+		return elevation, azimuth
 
 
 	def tb(self, signal):
@@ -76,21 +79,22 @@ class fast_beamforming:
 		padded_signal = np.zeros((self.n_max + signal.shape[0], signal.shape[1]))
 		padded_signal[self.n_max:,:] = signal
 
-		conv_signal = [ [ [
+		# translates the signal in time by each delay
+		translated_signal = [ [ [
 				padded_signal[value:self.num_samples+value,i]
 				for i,value in enumerate(d) ]
 				for d in delay ]
 				for delay in self.time_delays ]
 
-		squared_sum = ((np.sum(conv_signal,axis=2))**2).sum(-1)
+		squared_conv = ((np.sum(translated_signal,axis=2))**2).sum(-1)
 
 		# angles with maximum squared sum
-		max_angles = np.where(squared_sum == squared_sum.max())
+		angles = np.where(squared_conv == squared_conv.max())
 
-		return max_angles
+		return angles
 
 	
-	def fb(self, signal, delays=None, batch_size=8):
+	def fb(self, signal, delays=None, batch_size=1):
 		"""
         Frequency domain beamforming.
         Multiplies the signal and delays on the frequency domain
@@ -102,20 +106,21 @@ class fast_beamforming:
 		Signal = np.fft.fft(signal, axis=0)
 		
 		Signal = Signal[0:self.num_samples // 2,:,None,None]
-		result = np.empty((self.num_samples // 2, delays.shape[1], 
+		conv_signal = np.empty((self.num_samples // 2, delays.shape[1], 
 							delays.shape[2] , delays.shape[3]))
 		
-		# Find the batch size that works best on the robot
+		# For signals with many samples, a bigger batch size
+		# can speed up the algorithm and prevent memory errors
 		ps = self.phi.shape[1]
 		length = int(np.ceil(ps/batch_size))
 
 		for b in range(batch_size):
-			result[...,b*length:b*length+length] = (np.fft.ifft(
+			conv_signal[...,b*length:b*length+length] = (np.fft.ifft(
 				Signal * delays[...,b*length:b*length+length], 
 				axis=0)).real
 
-		squared_sum = ((result.sum(1)) ** 2).sum(0)
+		squared_conv = ((conv_signal.sum(1)) ** 2).sum(0)
 
-		az, el = np.unravel_index(squared_sum.argmax(), squared_sum.shape)
+		azimuth, elevation = np.unravel_index(squared_conv.argmax(), squared_conv.shape)
 
-		return el, az
+		return elevation, azimuth
