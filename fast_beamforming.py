@@ -53,7 +53,6 @@ class fast_beamforming:
 		"""
 		angles = self.tb(signal)
 
-		
 		# Get the correspondent delays
 		# The azimuth and elevation are switched between the time
 		# and frequency domain
@@ -65,7 +64,7 @@ class fast_beamforming:
 		# Apply the frequency domain beamforming
 		offset = self.fb(signal, delays, 1)
 
-		elevation, azimuth = (angles[0][0] + offset[0], angles[1][0] + offset[1])
+		elevation, azimuth = (np.unique(angles[0])[0] + offset[0], np.unique(angles[1])[0] + offset[1])
 
 		return elevation, azimuth
 
@@ -79,14 +78,14 @@ class fast_beamforming:
 		padded_signal = np.zeros((self.n_max + signal.shape[0], signal.shape[1]))
 		padded_signal[self.n_max:,:] = signal
 
-		# translates the signal in time by each delay
-		translated_signal = [ [ [
+		# shifts the signal in time by each delay
+		shifted_signal = [ [ [
 				padded_signal[value:self.num_samples+value,i]
 				for i,value in enumerate(d) ]
 				for d in delay ]
 				for delay in self.time_delays ]
 
-		squared_conv = ((np.sum(translated_signal,axis=2))**2).sum(-1)
+		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1)
 
 		# angles with maximum squared sum
 		angles = np.where(squared_conv == squared_conv.max())
