@@ -57,6 +57,7 @@ class fast_beamforming:
 
 	def ffb(self, signal):
 		"""
+		Fast frequency domain beamforming.
 		Applies the time domain beamforming and the frequency domain
 		beamforming to the result to get the pinger position 
 		"""
