@@ -37,6 +37,10 @@ class fast_beamforming:
 
 		self.n_max = int(np.max(self.time_delays)) # Update the maximum value
 
+		# Don't compute the delays for every angle
+		self.skip_amount = 5
+		self.fast_time_delays = self.time_delays[::self.skip_amount, ::self.skip_amount,:]
+
 		# Frequency delays
 		deltas = np.moveaxis(delays, 0, -1) # Shape (hydrophone_number, theta.shape, phi.shape)	
 
@@ -46,44 +50,43 @@ class fast_beamforming:
 
 
 	def ffb(self, signal):
-		"""
-		Fast frequency domain beamforming.
-		Applies the time domain beamforming and the frequency domain
-		beamforming to the result to get the pinger position 
-		"""
-		angles = self.tb(signal)
+		angles = self.tb(signal, self.fast_time_delays)
 
-		# Get the correspondent delays
-		# The azimuth and elevation are switched between the time
-		# and frequency domain
+		el_lower_bound = self.skip_amount * min(angles[0])-self.skip_amount 
+		el_upper_bound = self.skip_amount * max(angles[0])+self.skip_amount
+		az_lower_bound = self.skip_amount * min(angles[1])-self.skip_amount
+		az_upper_bound = self.skip_amount * max(angles[1])+self.skip_amount
+
 		delays = self.freq_delays[:,:,
-					min(angles[1]):max(angles[1]), 
-					min(angles[0]):max(angles[0])
+					az_lower_bound:az_upper_bound,
+					el_lower_bound:el_upper_bound 
 				]
 
 		# Apply the frequency domain beamforming
-		offset = self.fb(signal, delays, 1)
+		el_offset, az_offset = self.fb(signal, delays, 1)
 
-		elevation, azimuth = (np.min(angles[0]) + offset[0], np.min(angles[1]) + offset[1])
+		elevation, azimuth = (el_lower_bound + el_offset, az_lower_bound + az_offset)
 
 		return elevation, azimuth
 
 
-	def tb(self, signal):
+	def tb(self, signal, delays=None):
 		"""
         Time domain beamforming.
         Convolves the given signal with the respective coordinates delay
         and returns the squared sum of the result
 		"""
+		if delays is None: delays = self.time_delays
+
 		padded_signal = np.zeros((self.n_max + signal.shape[0], signal.shape[1]))
 		padded_signal[self.n_max:,:] = signal
 
 		# shifts the signal in time by each delay
 		shifted_signal = [ [ [
-				padded_signal[value:self.num_samples+value,i]
-				for i,value in enumerate(d) ]
-				for d in delay ]
-				for delay in self.time_delays ]
+				padded_signal[d:self.num_samples+d,idx]
+				for idx,d in enumerate(dly) ]
+				for dly in delay ]
+				for delay in delays ]
 
 		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1)
 

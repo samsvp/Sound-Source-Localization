@@ -23,7 +23,15 @@ coord = np.array((
                             [-distance,0,0]
                 ))
 
-y, fs = sf.read('wavs/110118_020.WAV')
+distance_x = (19.051e-3)/2  # Distance between hydrophones in m
+distance_y = (18.37e-3)/2
+
+coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+                          [distance_x, 0, -distance_y],
+                          [distance_x, -8.64e-3, distance_y],
+                          [-distance_x, -0.07e-3, distance_y]))
+
+y, fs = sf.read('wavs/030719_002.WAV')
 
 y = y[:,:4]	
 
@@ -62,33 +70,45 @@ while block_ending_point < y.shape[0]:
 	
 	print(rms)
 
+	# start = time.time()
+	# rms = b.fb(signal)
+	# print(time.time()-start)
+	
+	# print(rms)
+
+	# start = time.time()
+	# rms = b.tb(signal)
+	# print(time.time()-start)
+	
+	# print(np.unique(rms[0]))
+	# print(np.unique(rms[1]))
+
 	break
 
-
 times = []
-for i in range(200):
+for i in range(100):
 	start = time.time()
 	rms = b.ffb(signal)
 	times.append(time.time()-start)
-print("Fast beamforming (200 iterations):")
+print("Fast beamforming (100 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
 print("")
 
 times = []
-for i in range(200):
+for i in range(100):
 	start = time.time()
 	rms = b.fb(signal)
 	times.append(time.time()-start)
-print("Frequency beamforming (200 iterations):")
+print("Frequency beamforming (100 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
 print("")
 
 times = []
-for i in range(200):
+for i in range(100):
 	start = time.time()
 	rms = b.tb(signal)
 	times.append(time.time()-start)
-print("Time beamforming (200 iterations):")
+print("Time beamforming (100 iterations):")
 print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
