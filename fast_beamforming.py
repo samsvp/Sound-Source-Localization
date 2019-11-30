@@ -7,7 +7,7 @@ import numpy as np
 
 class fast_beamforming:
 
-	def __init__(self, coord, fs, num_samples):
+	def __init__(self, coord, fs, num_samples, time_skip=5):
 		sound_speed  = 1491.24 # m/s
 		
 		# Delay matrix builder
@@ -37,25 +37,33 @@ class fast_beamforming:
 
 		self.n_max = int(np.max(self.time_delays)) # Update the maximum value
 
-		# Don't compute the delays for every angle
-		self.skip_amount = 5
-		self.fast_time_delays = self.time_delays[::self.skip_amount, ::self.skip_amount,:]
-
 		# Frequency delays
 		deltas = np.moveaxis(delays, 0, -1) # Shape (hydrophone_number, theta.shape, phi.shape)	
 
 		# Shape (num_samples // 2, hydrophone_number, theta.shape, phi.shape)	
 		self.freq_delays = np.array([np.exp(2j * np.pi * fs * deltas * k / num_samples) 
 							for k in range(num_samples // 2)]) 
+		
+		# Don't compute the delays for every angle when using fast beamforming
+		self.time_skip = time_skip
+		self.fast_time_delays = self.time_delays[::self.time_skip, ::self.time_skip,:]
+
 
 
 	def ffb(self, signal):
+		"""
+        Fast frequency domain beamforming.
+        Applies the time domain beamforming to the signal to get the area
+		with the highest rms, then applies the frequency domain beamforming
+		to get the right angles
+		"""
+
 		angles = self.tb(signal, self.fast_time_delays)
 
-		el_lower_bound = self.skip_amount * min(angles[0])-self.skip_amount 
-		el_upper_bound = self.skip_amount * max(angles[0])+self.skip_amount
-		az_lower_bound = self.skip_amount * min(angles[1])-self.skip_amount
-		az_upper_bound = self.skip_amount * max(angles[1])+self.skip_amount
+		el_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
+		el_upper_bound = self.time_skip * max(angles[0])+self.time_skip
+		az_lower_bound = self.time_skip * min(angles[1])-self.time_skip
+		az_upper_bound = self.time_skip * max(angles[1])+self.time_skip
 
 		delays = self.freq_delays[:,:,
 					az_lower_bound:az_upper_bound,
@@ -100,8 +108,7 @@ class fast_beamforming:
 		"""
         Frequency domain beamforming.
         Multiplies the signal and delays on the frequency domain
-        and returns the squared sum of the ifft of the result.
-		Use this version for signals with a lot of data.
+        and returns the squared sum of the ifft of the result
 		"""
 		if delays is None: delays = self.freq_delays
 
