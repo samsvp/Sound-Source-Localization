@@ -41,7 +41,7 @@ amount_to_read = 256
 block_beginning_point = 0
 block_ending_point = amount_to_read
 
-b = fb.fast_beamforming(coord, fs, amount_to_read)
+b = fb.ffb(coord, fs, amount_to_read)
 
 thresh = 0.1
 
@@ -71,13 +71,13 @@ while block_ending_point < y.shape[0]:
 	print(rms)
 
 	# start = time.time()
-	# rms = b.fb(signal)
+	# rms = b.fdsb(signal)
 	# print(time.time()-start)
 	
 	# print(rms)
 
 	# start = time.time()
-	# rms = b.tb(signal)
+	# rms = b.dsb(signal)
 	# print(time.time()-start)
 	
 	# print(np.unique(rms[0]))
@@ -85,7 +85,9 @@ while block_ending_point < y.shape[0]:
 
 	break
 
+
 # times = []
+# b = fb.ffb(coord, fs, amount_to_read)
 # for i in range(100):
 # 	start = time.time()
 # 	rms = b.ffb(signal)
@@ -98,7 +100,7 @@ while block_ending_point < y.shape[0]:
 # times = []
 # for i in range(100):
 # 	start = time.time()
-# 	rms = b.fb(signal)
+# 	rms = b.fdsb(signal)
 # 	times.append(time.time()-start)
 # print("Frequency beamforming (100 iterations):")
 # print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
@@ -108,7 +110,7 @@ while block_ending_point < y.shape[0]:
 # times = []
 # for i in range(100):
 # 	start = time.time()
-# 	rms = b.tb(signal)
+# 	rms = b.dsb(signal)
 # 	times.append(time.time()-start)
 # print("Time beamforming (100 iterations):")
 # print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))

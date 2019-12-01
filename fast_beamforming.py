@@ -5,17 +5,16 @@ from __future__ import division
 import time
 import numpy as np
 
-class fast_beamforming:
+class ffb:
 
-	def __init__(self, coord, fs, num_samples, time_skip=5):
+	def __init__(self, coord, fs, num_samples, time_skip=8):
 		sound_speed  = 1491.24 # m/s
 		
 		# Delay matrix builder
-		self.phi = np.deg2rad(np.arange(0,181))
-		self.theta = np.deg2rad(np.arange(0, 181))
-		self.phi.shape, self.theta.shape = (1, self.phi.shape[0]), (self.theta.shape[0], 1)
+		self.phi = np.deg2rad(np.arange(0,181)).reshape(1,181)
+		self.theta = np.deg2rad(np.arange(0, 181)).reshape(181,1)
 
-		spherical_coordinates = np.concatenate( 
+		spherical_coords = np.concatenate( 
 									(
 										[-np.cos(self.theta)*np.sin(self.phi)],
 										[np.sin(self.theta)*np.sin(self.phi)],
@@ -24,21 +23,26 @@ class fast_beamforming:
 								)
 
 		delays = np.array(
-						[np.dot(coord, spherical_coordinates[...,i]) for i in range(spherical_coordinates.shape[-1])]
+						[np.dot(coord, spherical_coords[...,i]) 
+						for i in range(spherical_coords.shape[-1])]
 					)/sound_speed  # Shape (phi.shape, hydrophone_number, theta.shape)	
 
 		# Time delay
-		self.time_delays = np.swapaxes((np.round(fs * delays).T).astype(int).T, 1, 2) # Shape (phi.shape, theta.shape, hydrophone_number)
-		self.num_samples = num_samples  # Number of samples to read. If not divisible by 
-						# n_amostraPcanal a amount of time will not be read
-
-		self.n_max = int(np.max(np.abs(self.time_delays)))  # Gets the maximum absolute value os the delays matrix
-		self.time_delays += self.n_max # shifts the delays matrix so it doesn't have negative values
-
-		self.n_max = int(np.max(self.time_delays)) # Update the maximum value
+		time_delays = np.swapaxes(
+				(np.round(fs * delays).T).astype(int).T, 1, 2
+			) # Shape (phi.shape, theta.shape, hydrophone_number)
+		
+		# Gets the maximum absolute value os the delays matrix
+		n_max = int(np.max(np.abs(time_delays)))  
+		
+		# shifts the delays matrix so it doesn't have negative values
+		self.time_delays = time_delays + n_max 
+		# Update the maximum value
+		self.n_max = int(np.max(self.time_delays)) 
 
 		# Frequency delays
-		deltas = np.moveaxis(delays, 0, -1) # Shape (hydrophone_number, theta.shape, phi.shape)	
+		# Shape (hydrophone_number, theta.shape, phi.shape)	
+		deltas = np.moveaxis(delays, 0, -1) 
 
 		# Shape (num_samples // 2, hydrophone_number, theta.shape, phi.shape)	
 		self.freq_delays = np.array([np.exp(2j * np.pi * fs * deltas * k / num_samples) 
@@ -48,17 +52,18 @@ class fast_beamforming:
 		self.time_skip = time_skip
 		self.fast_time_delays = self.time_delays[::self.time_skip, ::self.time_skip,:]
 
+		self.num_samples = num_samples  # Number of samples to read
 
 
 	def ffb(self, signal):
 		"""
-        Fast frequency domain beamforming.
+        Fast delay-and-sum beamforming.
         Applies the time domain beamforming to the signal to get the area
 		with the highest rms, then applies the frequency domain beamforming
 		to get the right angles
 		"""
 
-		angles = self.tb(signal, self.fast_time_delays)
+		angles = self.dsb(signal, self.fast_time_delays)
 
 		el_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
 		el_upper_bound = self.time_skip * max(angles[0])+self.time_skip
@@ -71,16 +76,16 @@ class fast_beamforming:
 				]
 
 		# Apply the frequency domain beamforming
-		el_offset, az_offset = self.fb(signal, delays, 1)
+		el_offset, az_offset = self.fdsb(signal, delays, 1)
 
 		elevation, azimuth = (el_lower_bound + el_offset, az_lower_bound + az_offset)
 
 		return elevation, azimuth
 
 
-	def tb(self, signal, delays=None):
+	def dsb(self, signal, delays=None):
 		"""
-        Time domain beamforming.
+        Time domain delay-and-sum beamforming.
         Convolves the given signal with the respective coordinates delay
         and returns the squared sum of the result
 		"""
@@ -104,9 +109,9 @@ class fast_beamforming:
 		return angles
 
 	
-	def fb(self, signal, delays=None, batch_size=1):
+	def fdsb(self, signal, delays=None, batch_size=1):
 		"""
-        Frequency domain beamforming.
+        Frequency domain delay-and-sum beamforming.
         Multiplies the signal and delays on the frequency domain
         and returns the squared sum of the ifft of the result
 		"""
