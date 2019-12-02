@@ -70,6 +70,9 @@ class ffb:
 		az_lower_bound = self.time_skip * min(angles[1])-self.time_skip
 		az_upper_bound = self.time_skip * max(angles[1])+self.time_skip
 
+		if el_lower_bound < 0: el_lower_bound = 0
+		if az_lower_bound < 0: az_lower_bound = 0
+
 		delays = self.freq_delays[:,:,
 					az_lower_bound:az_upper_bound,
 					el_lower_bound:el_upper_bound 
