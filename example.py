@@ -65,7 +65,7 @@ while block_ending_point < y.shape[0]:
 	signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
 	
 	start = time.time()
-	rms = b.ffb(signal)
+	rms = b.fast_aoa(signal)
 	print(time.time()-start)
 	
 	print(rms)
@@ -87,7 +87,7 @@ while block_ending_point < y.shape[0]:
 
 
 # times = []
-# b = fb.ffb(coord, fs, amount_to_read)
+# b = fb.fast_aoa(coord, fs, amount_to_read)
 # for i in range(100):
 # 	start = time.time()
 # 	rms = b.ffb(signal)
