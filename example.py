@@ -91,31 +91,31 @@ while block_ending_point < y.shape[0]:
 	break
 
 
-times = []
-b = bf.bf(coord, fs, amount_to_read)
-for i in range(100):
-	start = time.time()
-	rms = b.fast_aoa(signal)
-	times.append(time.time()-start)
-print("Fast beamforming (100 iterations):")
-print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+# times = []
+# b = bf.bf(coord, fs, amount_to_read)
+# for i in range(100):
+# 	start = time.time()
+# 	rms = b.fast_aoa(signal)
+# 	times.append(time.time()-start)
+# print("Fast beamforming (100 iterations):")
+# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
-print("")
+# print("")
 
-times = []
-for i in range(100):
-	start = time.time()
-	rms = b.aoa(signal, b.fdsb)
-	times.append(time.time()-start)
-print("Frequency beamforming (100 iterations):")
-print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+# times = []
+# for i in range(100):
+# 	start = time.time()
+# 	rms = b.aoa(signal, b.fdsb)
+# 	times.append(time.time()-start)
+# print("Frequency beamforming (100 iterations):")
+# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
-print("")
+# print("")
 
-times = []
-for i in range(100):
-	start = time.time()
-	rms = b.aoa(signal, b.dsb)
-	times.append(time.time()-start)
-print("Time beamforming (100 iterations):")
-print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+# times = []
+# for i in range(100):
+# 	start = time.time()
+# 	rms = b.aoa(signal, b.dsb)
+# 	times.append(time.time()-start)
+# print("Time beamforming (100 iterations):")
+# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
