@@ -7,7 +7,8 @@ import time
 import numpy as np
 import soundfile as sf
 
-import fast_beamforming as fb
+import beamforming as bf
+import visual_beamforming as vbf
 
 # Hydrophones coordinates
 distance_x = 18.75e-3
@@ -41,7 +42,7 @@ amount_to_read = 256
 block_beginning_point = 0
 block_ending_point = amount_to_read
 
-b = fb.bf(coord, fs, amount_to_read)
+b = bf.bf(coord, fs, amount_to_read)
 
 thresh = 0.1
 
@@ -65,52 +66,56 @@ while block_ending_point < y.shape[0]:
 	signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
 	
 	start = time.time()
-	rms = b.fast_aoa(signal)
+	angle = b.fast_aoa(signal)
+	print(time.time()-start)
+	print(angle)
+	
+	squared_conv = b.fdsb(signal)
+	vbf.plot_squared_conv(squared_conv)
+	squared_conv = b.dsb(signal)
+	vbf.plot_squared_conv(squared_conv, show=True)
+
+	start = time.time()
+	angle = b.aoa(signal, b.fdsb)
 	print(time.time()-start)
 	
-	print(rms)
+	print(angle)
 
-	# start = time.time()
-	# rms = b.fdsb(signal)
-	# print(time.time()-start)
+	start = time.time()
+	angle = b.aoa(signal, b.dsb)
+	print(time.time()-start)
 	
-	# print(rms)
-
-	# start = time.time()
-	# rms = b.dsb(signal)
-	# print(time.time()-start)
-	
-	# print(np.unique(rms[0]))
-	# print(np.unique(rms[1]))
+	print(np.unique(angle[0]))
+	print(np.unique(angle[1]))
 
 	break
 
 
-# times = []
-# b = fb.fast_aoa(coord, fs, amount_to_read)
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.ffb(signal)
-# 	times.append(time.time()-start)
-# print("Fast beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+times = []
+b = bf.bf(coord, fs, amount_to_read)
+for i in range(100):
+	start = time.time()
+	rms = b.fast_aoa(signal)
+	times.append(time.time()-start)
+print("Fast beamforming (100 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
-# print("")
+print("")
 
-# times = []
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.fdsb(signal)
-# 	times.append(time.time()-start)
-# print("Frequency beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+times = []
+for i in range(100):
+	start = time.time()
+	rms = b.aoa(signal, b.fdsb)
+	times.append(time.time()-start)
+print("Frequency beamforming (100 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
 
-# print("")
+print("")
 
-# times = []
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.dsb(signal)
-# 	times.append(time.time()-start)
-# print("Time beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+times = []
+for i in range(100):
+	start = time.time()
+	rms = b.aoa(signal, b.dsb)
+	times.append(time.time()-start)
+print("Time beamforming (100 iterations):")
+print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
