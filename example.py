@@ -3,6 +3,7 @@
 from __future__ import division
 
 import time
+import timeit
 
 import numpy as np
 import soundfile as sf
@@ -27,10 +28,10 @@ coord = np.array((
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
-coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-                          [distance_x, 0, -distance_y],
-                          [distance_x, -8.64e-3, distance_y],
-                          [-distance_x, -0.07e-3, distance_y]))
+# coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+#                           [distance_x, 0, -distance_y],
+#                           [distance_x, -8.64e-3, distance_y],
+#                           [-distance_x, -0.07e-3, distance_y]))
 
 y, fs = sf.read('wavs/110118_002.WAV')
 
@@ -91,31 +92,13 @@ while block_ending_point < y.shape[0]:
 	break
 
 
-# times = []
-# b = bf.bf(coord, fs, amount_to_read)
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.fast_aoa(signal)
-# 	times.append(time.time()-start)
-# print("Fast beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+iter_number = 100
 
-# print("")
+t = timeit.timeit("b.fast_aoa(signal)", number=iter_number, globals=globals())/iter_number
+print("\nfast aoa:", t)
 
-# times = []
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.aoa(signal, b.fdsb)
-# 	times.append(time.time()-start)
-# print("Frequency beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+t = timeit.timeit("b.aoa(signal, b.fdsb)", number=iter_number, globals=globals())/iter_number
+print("\nfreq aoa:", t)
 
-# print("")
-
-# times = []
-# for i in range(100):
-# 	start = time.time()
-# 	rms = b.aoa(signal, b.dsb)
-# 	times.append(time.time()-start)
-# print("Time beamforming (100 iterations):")
-# print("mean:", np.mean(times), "\nmax:", np.max(times), "\nmin:", np.min(times))
+t = timeit.timeit("b.aoa(signal, b.dsb)", number=iter_number, globals=globals())/iter_number
+print("\ntime aoa:", t)
