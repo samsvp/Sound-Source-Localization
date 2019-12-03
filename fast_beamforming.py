@@ -56,37 +56,6 @@ class bf:
 		self.num_samples = num_samples  # Number of samples to read
 
 
-	def ffb(self, signal):
-		"""
-        Fast delay-and-sum beamforming.
-        Applies the time domain beamforming to the signal to get the area
-		with the highest rms, then applies the frequency domain beamforming
-		to get the right angles
-		"""
-
-		angles = self.aoa(self.dsb, signal, self.fast_time_delays)
-
-		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
-		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
-		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
-		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
-
-		if el_lower_bound < 0: el_lower_bound = 0
-		if az_lower_bound < 0: az_lower_bound = 0
-
-		delays = self.freq_delays[:,:,
-					az_lower_bound:az_upper_bound,
-					el_lower_bound:el_upper_bound 
-				]
-
-		# Apply the frequency domain beamforming
-		az_offset, el_offset = (a[0] for a in self.aoa(self.fdsb, signal, delays, 1))
-
-		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
-
-		return azimuth, elevation
-
-
 	def dsb(self, signal, delays=None):
 		"""
         Time domain delay-and-sum beamforming.
@@ -147,3 +116,35 @@ class bf:
 					   else beamforming(signal, delays, batch_size)
 		angles = np.where(squared_conv == squared_conv.max())
 		return angles
+		
+	
+	def fast_aoa(self, signal):
+		"""
+        Fast delay-and-sum beamforming.
+        Applies the time domain beamforming to the signal to get the area
+		with the highest rms, then applies the frequency domain beamforming
+		to get the right angles
+		"""
+
+		angles = self.aoa(self.dsb, signal, self.fast_time_delays)
+
+		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
+		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
+		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
+		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
+
+		if el_lower_bound < 0: el_lower_bound = 0
+		if az_lower_bound < 0: az_lower_bound = 0
+
+		delays = self.freq_delays[:,:,
+					az_lower_bound:az_upper_bound,
+					el_lower_bound:el_upper_bound 
+				]
+
+		# Apply the frequency domain beamforming
+		az_offset, el_offset = (a[0] for a in self.aoa(self.fdsb, signal, delays, 1))
+
+		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
+
+		return azimuth, elevation
+
