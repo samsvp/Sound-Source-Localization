@@ -5,7 +5,8 @@ from __future__ import division
 import time
 import numpy as np
 
-class ffb:
+
+class bf:
 
 	def __init__(self, coord, fs, num_samples, time_skip=8):
 		sound_speed  = 1491.24 # m/s
@@ -63,12 +64,12 @@ class ffb:
 		to get the right angles
 		"""
 
-		angles = self.dsb(signal, self.fast_time_delays)
+		angles = self.aoa(self.dsb, signal, self.fast_time_delays)
 
-		el_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
-		el_upper_bound = self.time_skip * max(angles[0])+self.time_skip
-		az_lower_bound = self.time_skip * min(angles[1])-self.time_skip
-		az_upper_bound = self.time_skip * max(angles[1])+self.time_skip
+		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
+		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
+		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
+		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
 
 		if el_lower_bound < 0: el_lower_bound = 0
 		if az_lower_bound < 0: az_lower_bound = 0
@@ -79,11 +80,11 @@ class ffb:
 				]
 
 		# Apply the frequency domain beamforming
-		el_offset, az_offset = self.fdsb(signal, delays, 1)
+		az_offset, el_offset = (a[0] for a in self.aoa(self.fdsb, signal, delays, 1))
 
-		elevation, azimuth = (el_lower_bound + el_offset, az_lower_bound + az_offset)
+		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
 
-		return elevation, azimuth
+		return azimuth, elevation
 
 
 	def dsb(self, signal, delays=None):
@@ -104,12 +105,9 @@ class ffb:
 				for dly in delay ]
 				for delay in delays ]
 
-		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1)
+		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
 
-		# angles with maximum squared sum
-		angles = np.where(squared_conv == squared_conv.max())
-
-		return angles
+		return squared_conv
 
 	
 	def fdsb(self, signal, delays=None, batch_size=1):
@@ -138,6 +136,14 @@ class ffb:
 
 		squared_conv = ((conv_signal.sum(1)) ** 2).sum(0)
 
-		azimuth, elevation = np.unravel_index(squared_conv.argmax(), squared_conv.shape)
+		return squared_conv
 
-		return elevation, azimuth
+
+	def aoa(self, beamforming, signal, delays=None, batch_size=None):
+		"""
+		Returns the possible angles of arrival given by the beamforming algorithm
+		"""
+		squared_conv = beamforming(signal, delays) if batch_size is None \
+					   else beamforming(signal, delays, batch_size)
+		angles = np.where(squared_conv == squared_conv.max())
+		return angles

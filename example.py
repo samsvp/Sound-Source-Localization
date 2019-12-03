@@ -31,7 +31,7 @@ coord = np.array(([-distance_x, -8.41e-3, -distance_y],
                           [distance_x, -8.64e-3, distance_y],
                           [-distance_x, -0.07e-3, distance_y]))
 
-y, fs = sf.read('wavs/030719_002.WAV')
+y, fs = sf.read('wavs/110118_002.WAV')
 
 y = y[:,:4]	
 
@@ -41,7 +41,7 @@ amount_to_read = 256
 block_beginning_point = 0
 block_ending_point = amount_to_read
 
-b = fb.ffb(coord, fs, amount_to_read)
+b = fb.bf(coord, fs, amount_to_read)
 
 thresh = 0.1
 
