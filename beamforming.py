@@ -62,10 +62,9 @@ class bf:
         Convolves the given signal with the respective coordinates delay
         and returns the squared sum of the result
 		"""
-		delays = kwargs["delays"] if "delays" in kwargs else self.time_delays
+		delays = kwargs.get("delays", self.time_delays)
 
-		padded_signal = np.zeros((self.n_max + signal.shape[0], signal.shape[1]))
-		padded_signal[self.n_max:,:] = signal
+		padded_signal = np.pad(signal, ((self.n_max,0),(0,0)), mode="constant")
 
 		# shifts the signal in time by each delay
 		shifted_signal = [ [ [
@@ -73,7 +72,7 @@ class bf:
 				for idx,d in enumerate(dly) ]
 				for dly in delay ]
 				for delay in delays ]
-
+		
 		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
 
 		return squared_conv
@@ -85,12 +84,11 @@ class bf:
         Multiplies the signal and delays on the frequency domain
         and returns the squared sum of the ifft of the result
 		"""
-		delays = kwargs["delays"] if "delays" in kwargs else self.freq_delays
-		batch_size = kwargs["batch_size"] if "batch_size" in kwargs else 1
+		delays = kwargs.get("delays", self.freq_delays)
+		batch_size = kwargs.get("batch_size", 1)
 
-		Signal = np.fft.fft(signal, axis=0)
+		Signal = np.fft.fft(signal, axis=0)[0:self.num_samples // 2,:,None,None]
 		
-		Signal = Signal[0:self.num_samples // 2,:,None,None]
 		conv_signal = np.empty((self.num_samples // 2, delays.shape[1], 
 							delays.shape[2] , delays.shape[3]))
 		
@@ -125,7 +123,6 @@ class bf:
 		with the highest rms, then applies the frequency domain beamforming
 		to get the right angles
 		"""
-
 		angles = self.aoa(signal, bf=self.dsb, delays=self.fast_time_delays)
 
 		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
