@@ -34,19 +34,17 @@ The algorithm results are the same as the frequency domain beamforming but at mo
 
 ## Speed Test
 
-Running each of the beamforming algorithms 200 times for the same signal source on a Intel(R) Core(TM) i3-5020U CPU @ 2.20GHz the following times, in seconds, were given.
+Running each of the beamforming algorithms 100 times for the same signal source on a Intel(R) Core(TM) i5-4440 CPU @ 3.10GHz the following times, in seconds, were given.
 
-|      | Fast | Frequency | Time |
-|------|------|-----------|------|
-| mean | 0.47 |   1.02    | 0.45 |
-| max  | 0.52 |   1.08    | 0.67 |
-| min  | 0.46 |   1.01    | 0.43 |
+|      | Fast  | Frequency | Time  |
+|------|-------|-----------|-------|
+| mean | 0.028 |   1.289   | 0.460 |
 
 
 ## Usage
 
 ```python
-import fast_beamforming as fb
+import beamforming as bf
 
 distance = 3 * 10**-2 # Distance between sensors in m
 
@@ -63,11 +61,11 @@ fs = 2e+6 # Signal sampling rate
 amount_read = 256 # Signal size
 
 # Create an object with the signal and sensor characteristics
-b = fb.fast_beamforming(coord, fs, amount_to_read)
+b = bf.bf(coord, fs, amount_to_read)
 
-signal = 10 * np.random.randn(256, 4) # Signal to read
+signal = ... # Signal to read
 
-elevation, azimuth = b.ffb(signal)
+azimuth, elevation = b.fast_aoa(signal)
 
-print(elevation, azimuth)
+print(azimuth, elevation)
 ```
