@@ -5,7 +5,7 @@ The fast beamforming is a fast implementation of the frequency domain beamformin
 # Table of Contents
 1. [Frequency Domain Beamforming](#Frequency-Domain-Beamforming)
 2. [Time Domain Beamforming](#Time-Domain-Beamforming)
-3. [Fast Beamforming](#Fast-Beamforming)
+3. [Fast Angle of Arrival](#Fast-Angle-of-Arrival)
 4. [Speed Test](#Speed-Test)
 5. [Usage](#Usage)
 
