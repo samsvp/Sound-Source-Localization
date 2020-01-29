@@ -37,3 +37,17 @@ def _create_cos(t=0.1, f=20e+3, fs=1.9e+6):
 	samples = np.arange(t * fs) / fs
 	signal = 5 * np.cos(2 * np.pi * f * samples)
 	return signal
+
+
+def plot_array(coords):
+	"""
+	Plots the sensor coordinates
+	""" 
+	fig = pyplot.figure()
+	ax = Axes3D(fig)
+
+	for c in coord:
+			ax.scatter(c[0],c[1],c[2])
+	
+	pyplot.show()
+	
