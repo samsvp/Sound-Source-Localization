@@ -1,3 +1,6 @@
+from mpl_toolkits.mplot3d import Axes3D
+
+
 import numpy as np
 import beamforming as bf
 import matplotlib.pyplot as plt
@@ -43,11 +46,11 @@ def plot_array(coords):
 	"""
 	Plots the sensor coordinates
 	""" 
-	fig = pyplot.figure()
+	fig = plt.figure()
 	ax = Axes3D(fig)
 
 	for c in coord:
 			ax.scatter(c[0],c[1],c[2])
 	
-	pyplot.show()
+	plt.show()
 	
