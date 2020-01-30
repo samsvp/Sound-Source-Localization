@@ -28,12 +28,12 @@ coord = np.array((
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
-coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-                          [distance_x, 0, -distance_y],
-                          [distance_x, -8.64e-3, distance_y],
-                          [-distance_x, -0.07e-3, distance_y]))
+#coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+#                          [distance_x, 0, -distance_y],
+#                          [distance_x, -8.64e-3, distance_y],
+#                          [-distance_x, -0.07e-3, distance_y]))
 
-y, fs = sf.read('/home/ney/Downloads/030719_003.WAV')
+y, fs = sf.read('wavs/110118_002.WAV')
 
 y = y[:,:4]	
 
