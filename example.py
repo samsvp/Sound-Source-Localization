@@ -28,17 +28,17 @@ coord = np.array((
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
-#coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-#                          [distance_x, 0, -distance_y],
-#                          [distance_x, -8.64e-3, distance_y],
-#                          [-distance_x, -0.07e-3, distance_y]))
+coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+                         [distance_x, 0, -distance_y],
+                         [distance_x, -8.64e-3, distance_y],
+                         [-distance_x, -0.07e-3, distance_y]))
 
-y, fs = sf.read('wavs/110118_002.WAV')
+y, fs = sf.read('wavs/030719_013.WAV')
 
 y = y[:,:4]	
 
 y_ref = y																			
-amount_to_read = 256
+amount_to_read = 128
 
 block_beginning_point = 0
 block_ending_point = amount_to_read
@@ -68,37 +68,43 @@ while block_ending_point < y.shape[0]:
 	
 	start = time.time()
 	angle = b.fast_aoa(signal)
-	print(time.time()-start)
-	print(angle)
-	
-	squared_conv = b.fdsb(signal)
-	vbf.plot_squared_conv(squared_conv)
-	squared_conv = b.dsb(signal)
-	vbf.plot_squared_conv(squared_conv, show=True)
+	print("normal fast anfle of arrival(aoa)", time.time()-start)
+	print("fast aoa angle:", angle)
 
 	start = time.time()
-	angle = b.aoa(signal, b.fdsb)
-	print(time.time()-start)
+	angle = b.fast_faoa(signal)
+	print("\npure frequency fast aoa time", time.time()-start)
+	print("freq fast aoa angles:", angle)
 	
-	print(angle)
+	# squared_conv = b.fdsb(signal)
+	# vbf.plot_squared_conv(squared_conv)
+	# squared_conv = b.dsb(signal)
+	# vbf.plot_squared_conv(squared_conv, show=True)
+
+	start = time.time()
+	angle = b.aoa(signal, b.fdsb, batch_size=8)
+	print("\n normal freq aoa time:", time.time()-start)
+	print("normal freq aoa angles:", angle)
 
 	start = time.time()
 	angle = b.aoa(signal, b.dsb)
-	print(time.time()-start)
+	print("\nnormal time aoa time:", time.time()-start)
 	
 	print(np.unique(angle[0]))
 	print(np.unique(angle[1]))
 
 	break
 
-vbf.plot_array(coord)
-iter_number = 100
+# vbf.plot_array(coord)
 
-t = timeit.timeit("b.fast_aoa(signal)", number=iter_number, globals=globals())/iter_number
-print("\nfast aoa:", t)
+# speed test
+# iter_number = 100
 
-t = timeit.timeit("b.aoa(signal, b.fdsb)", number=iter_number, globals=globals())/iter_number
-print("\nfreq aoa:", t)
+# t = timeit.timeit("b.fast_aoa(signal)", number=iter_number, globals=globals())/iter_number
+# print("\nfast aoa:", t)
 
-t = timeit.timeit("b.aoa(signal, b.dsb)", number=iter_number, globals=globals())/iter_number
-print("\ntime aoa:", t)
+# t = timeit.timeit("b.aoa(signal, b.fdsb)", number=iter_number, globals=globals())/iter_number
+# print("\nfreq aoa:", t)
+
+# t = timeit.timeit("b.aoa(signal, b.dsb)", number=iter_number, globals=globals())/iter_number
+# print("\ntime aoa:", t)

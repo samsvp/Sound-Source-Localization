@@ -45,14 +45,16 @@ class bf:
 		# Shape (hydrophone_number, theta.shape, phi.shape)	
 		deltas = np.moveaxis(delays, 0, -1) 
 
+		# Don't compute the delays for every angle when using fast beamforming
+		self.time_skip = time_skip
+
 		# Shape (num_samples // 2, hydrophone_number, theta.shape, phi.shape)	
 		self.freq_delays = np.array([np.exp(2j * np.pi * fs * deltas * k / num_samples) 
 							for k in range(num_samples // 2)]) 
+		self.fast_freq_delays = self.freq_delays[:,:,::self.time_skip, ::self.time_skip]
 		
-		# Don't compute the delays for every angle when using fast beamforming
-		self.time_skip = time_skip
 		self.fast_time_delays = self.time_delays[::self.time_skip, ::self.time_skip,:]
-
+				
 		self.num_samples = num_samples  # Number of samples to read
 
 
@@ -96,7 +98,7 @@ class bf:
 		# can speed up the algorithm and prevent memory errors
 		ps = self.phi.shape[1]
 		length = int(np.ceil(ps/batch_size))
-
+		
 		for b in range(batch_size):
 			conv_signal[...,b*length:b*length+length] = (np.fft.ifft(
 				Signal * delays[...,b*length:b*length+length], 
@@ -145,3 +147,32 @@ class bf:
 
 		return azimuth, elevation
 
+	
+	def fast_faoa(self, signal):
+		"""
+        Fast delay-and-sum beamforming.
+        Applies the time domain beamforming to the signal to get the area
+		with the highest rms, then applies the frequency domain beamforming
+		to get the right angles
+		"""
+		angles = self.aoa(signal, bf=self.fdsb, delays=self.fast_freq_delays)
+
+		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
+		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
+		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
+		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
+
+		if el_lower_bound < 0: el_lower_bound = 0
+		if az_lower_bound < 0: az_lower_bound = 0
+
+		delays = self.freq_delays[:,:,
+					az_lower_bound:az_upper_bound,
+					el_lower_bound:el_upper_bound 
+				]
+
+		# Apply the frequency domain beamforming
+		az_offset, el_offset = (a[0] for a in self.aoa(signal, bf=self.fdsb, delays=delays, batch_size=1))
+
+		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
+
+		return azimuth, elevation
