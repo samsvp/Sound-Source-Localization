@@ -49,7 +49,7 @@ def plot_array(coords):
 	fig = plt.figure()
 	ax = Axes3D(fig)
 
-	for c in coord:
+	for c in coords:
 			ax.scatter(c[0],c[1],c[2])
 	
 	plt.show()
