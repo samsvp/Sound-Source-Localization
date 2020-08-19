@@ -24,21 +24,28 @@ def show():
 	plt.show()
 
 
-def sensor_cos_response(coords, show=False):
+def sensor_response(coords, fs=192e+3, angles=(0,90), amount_to_read = 128, show=True):
 	"""
 	Visualizes the sensor array response to a cossine wave
 	which hits the sensors at the same time
 	"""
-	fs = 1.9e+6
-	signal = np.tile(_create_cos(fs=fs), (4,1))
-	b = bf.bf(coords, fs, signal.shape[0])
-	squared_conv = b.dsb(signal)
+	cos = _create_cos(fs=fs)
+	bm = bf.bf(coords, fs, amount_to_read)
+
+	delayed_cos = []
+	for i in range(coords.shape[0]):
+		delay = bm.time_delays[angles[0], angles[1], i]
+		delayed_cos.append(cos[delay:delay + amount_to_read])
+
+	delayed_signals = np.array(delayed_cos).reshape((amount_to_read, coords.shape[0]))
+
+	squared_conv = bm.dsb(delayed_signals)
 	plot_squared_conv(squared_conv, show=show)
 
 
-def _create_cos(t=0.1, f=20e+3, fs=1.9e+6):
+def _create_cos(t=0.1, f=20e+2, fs=192e+3, A=1):
 	samples = np.arange(t * fs) / fs
-	signal = 5 * np.cos(2 * np.pi * f * samples)
+	signal = A * np.cos(2 * np.pi * f * samples)
 	return signal
 
 

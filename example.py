@@ -20,20 +20,20 @@ distance     = 3 * 10**-2 # Distance between hydrophones in m
 
 # XY matrix of the hydrophone coordinates
 coord = np.array((
-                            [0,0,distance],
-                            [0,0,0],
-                            [0,0,-distance],
-                            [-distance,0,0]
+				[0,0,distance],
+				[0,0,0],
+				[0,0,-distance],
+				[-distance,0,0]
                 ))
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
 coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-                         [distance_x, 0, -distance_y],
-                         [distance_x, -8.64e-3, distance_y],
-                         [-distance_x, -0.07e-3, distance_y]))
+				  [distance_x, 0, -distance_y],
+				  [distance_x, -8.64e-3, distance_y],
+				  [-distance_x, -0.07e-3, distance_y]))
 
-y, fs = sf.read('wavs/030719_013.WAV')
+y, fs = sf.read('wavs/030719_012.WAV')
 
 y = y[:,:4]	
 
@@ -65,7 +65,7 @@ while block_ending_point < y.shape[0]:
 	if block_ending_point > y.shape[0]: continue
 
 	signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
-	
+	print(signal.shape)
 	start = time.time()
 	angle = b.fast_aoa(signal)
 	print("normal fast anfle of arrival(aoa)", time.time()-start)
@@ -76,10 +76,10 @@ while block_ending_point < y.shape[0]:
 	print("\npure frequency fast aoa time", time.time()-start)
 	print("freq fast aoa angles:", angle)
 	
-	# squared_conv = b.fdsb(signal)
-	# vbf.plot_squared_conv(squared_conv)
-	# squared_conv = b.dsb(signal)
-	# vbf.plot_squared_conv(squared_conv, show=True)
+	#squared_conv = b.fdsb(signal)
+	#vbf.plot_squared_conv(squared_conv)
+	squared_conv = b.dsb(signal)
+	vbf.plot_squared_conv(squared_conv, show=True)
 
 	start = time.time()
 	angle = b.aoa(signal, b.fdsb, batch_size=8)
