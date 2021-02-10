@@ -151,7 +151,7 @@ class bf:
 	def fast_faoa(self, signal):
 		"""
         Fast delay-and-sum beamforming.
-        Applies the time domain beamforming to the signal to get the area
+        Applies the frequency domain beamforming to the signal to get the area
 		with the highest rms, then applies the frequency domain beamforming
 		to get the right angles
 		"""
