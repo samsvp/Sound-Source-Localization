@@ -1,13 +1,14 @@
 #%%
 import os
 import csv
+import json
 import numpy as np
 import soundfile as sf
 
 from typing import List, Tuple
 
 dataset_2019 = [f"2019/mic_dev/{f}" for f in os.listdir("2019/mic_dev")]
-dataset_2020 = [f"2020/mic_dev/{f}" for f in os.listdir("2020/mic_dev")]
+# dataset_2020 = [f"2020/mic_dev/{f}" for f in os.listdir("2020/mic_dev")]
 
 #%%
 def trigger(y: np.ndarray, size=128, tol=0.0015, pt=50) -> np.ndarray:
@@ -32,9 +33,16 @@ def get_csv_file(wavfile: str) -> str:
     return csvfile
 
 #%%
-sounds = []
-for dt_2019 in dataset_2019:
+for j, dt_2019 in enumerate(dataset_2019):
+    print(f"{j} out of {len(dataset_2019)} processed")
     y, fs = sf.read(dt_2019)
     csv_dt_2019 = get_csv_file(dt_2019)
     indexes = time_to_index_2019(csv_dt_2019, fs)
-    sounds.append([y[i[0]:i[1], :] for i in indexes])
+    sounds = {i: y[idx[0]:idx[1], :].tolist() for i, idx in enumerate(indexes)}
+
+    file_name = f"{csv_dt_2019.split('.')[0]}.json"
+    with open(file_name, "w") as f:
+        json.dump(sounds, f, indent=4)
+
+print("All data has been processed.")
+# %%
