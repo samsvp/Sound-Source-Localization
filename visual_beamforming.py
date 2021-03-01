@@ -30,7 +30,7 @@ def sensor_response(coords, fs=192e+3, angles=(0,90), amount_to_read = 128, show
 	which hits the sensors at the same time
 	"""
 	cos = _create_cos(fs=fs)
-	bm = bf.bf(coords, fs, amount_to_read)
+	bm = bf.Bf(coords, fs, amount_to_read)
 
 	delayed_cos = []
 	for i in range(coords.shape[0]):

@@ -72,7 +72,7 @@ iter_number = 100
 times = []
 
 for n in range(1,21):
-    b = bf.bf(coord, fs, amount_to_read, n)
+    b = bf.Bf(coord, fs, amount_to_read, n)
     fast_times=[]
     for i in range(iter_number):
         print("iteration:", i, "n =", n)
