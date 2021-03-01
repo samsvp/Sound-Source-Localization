@@ -1,5 +1,7 @@
 # vscode
 .vscode
+# Preprocessed json files
+2019/metadata_dev/*.json
 # Wav files
 *.WAV
 *.wav

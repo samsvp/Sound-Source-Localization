@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 
-class bf:
+class Bf:
 
 	def __init__(self, coord, fs, num_samples, time_skip=8):
 		sound_speed  = 1491.24 # m/s
