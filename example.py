@@ -43,7 +43,7 @@ amount_to_read = 128
 block_beginning_point = 0
 block_ending_point = amount_to_read
 
-b = bf.bf(coord, fs, amount_to_read)
+b = bf.Bf(coord, fs, amount_to_read)
 
 thresh = 0.1
 
