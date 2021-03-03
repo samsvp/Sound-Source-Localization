@@ -8,8 +8,6 @@ import soundfile as sf
 from typing import List, Tuple
 
 dataset_2019 = [f"2019/mic_dev/{f}" for f in os.listdir("2019/mic_dev")]
-# dataset_2020 = [f"2020/mic_dev/{f}" for f in os.listdir("2020/mic_dev")]
-
 #%%
 def trigger(y: np.ndarray, size=128, tol=0.0015, pt=50) -> np.ndarray:
     dataset = [y[(i - 1) * size:i * size] for i in range(1, y.shape[0], size)
@@ -18,8 +16,8 @@ def trigger(y: np.ndarray, size=128, tol=0.0015, pt=50) -> np.ndarray:
 
 def time_to_index_2019(filepath: str, fs: int) -> List[Tuple[int, int]]:
     dt = 1 / fs
-    with open(filepath) as file:
-        reader = csv.reader(file)
+    with open(filepath) as f:
+        reader = csv.reader(f)
         indexes = [(int(float(row[1]) // dt), int(float(row[2]) // dt)) 
             for i, row in enumerate(reader) if i != 0]
     return indexes
