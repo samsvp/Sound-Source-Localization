@@ -1,7 +1,7 @@
 import soundfile as sf
 import matplotlib.pyplot as plt
 import numpy as np
-import beamforming as bf
+import beamforming as bf1
 import sys
 
 class plot():
@@ -36,7 +36,7 @@ class audio_simulator():
         c = array[shift:len(array)-shift]
         return np.concatenate([a,b,c])
     
-    def beamformAt(self,x,y,z):
+    def beamform_at(self,x,y,z):
         # Make audio
         audio = self.sample_audio
         #sound_speed  = 1491.24 # m/s
@@ -68,7 +68,7 @@ class audio_simulator():
         [distance_x, -8.64e-3, distance_y],
         [-distance_x, -0.07e-3, distance_y]
         ])
-        sample_audio, fs = sf.read('030719_013.WAV')
+        sample_audio, fs = sf.read('030719_013.WAV') # Change to a Perfect Senoid
         self.sample_audio = np.array([[x]*len(coords) for x in sample_audio[...,0]])
         self.coords = coords
         self.fs = fs
