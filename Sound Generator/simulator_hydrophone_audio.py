@@ -71,7 +71,7 @@ if __name__ == "__main__":
                     [-distance_x, -0.07e-3, distance_y]
                 ))
 
-    a = AudioGenerator(coord, 192000, 128)
-    shifted_signal = a.create_signals(120, 60)
+    a = AudioGenerator(coord, 192000, 256)
+    shifted_signal = a.create_signals(60, 120)
     plt.plot(shifted_signal)
 # %%
