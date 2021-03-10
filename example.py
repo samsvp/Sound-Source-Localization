@@ -12,6 +12,8 @@ import soundfile as sf
 import beamforming as bf
 import visual_beamforming as vbf
 
+import simulator_hydrophone_audio as sha
+
 # Hydrophones coordinates
 distance_x = 18.75e-3
 distance_y = 18.75e-3
@@ -55,16 +57,16 @@ while block_ending_point < y.shape[0]:
 		block_beginning_point += amount_to_read
 		block_ending_point += amount_to_read
 		continue
-
+	
 	signal_beginning_point = block_beginning_point - int(amount_to_read / 2) + \
 								np.where(signal_block==signal_block[signal_block>thresh][0])[0][0]
 
 	block_beginning_point += int(fs/8)
 	block_ending_point = block_beginning_point + amount_to_read
-
+	
 	if block_ending_point > y.shape[0]: continue
-
 	signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
+	
 	print(signal.shape)
 	start = time.time()
 	angle = b.fast_aoa(signal)

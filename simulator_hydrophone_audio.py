@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # %%
 import numpy as np
+import beamforming as bf
+import visual_beamforming as vbf
 
 
 class AudioGenerator:
@@ -57,8 +59,17 @@ class AudioGenerator:
 
     def create_signals(self, azimuth: int, elevation: int, f=5000) -> np.ndarray:
         sine_wave = self.create_sine_wave(f)
-        sine_waves = np.array([sine_wave for i in range(4)]).T
+        sine_waves = np.array([sine_wave, sine_wave, sine_wave, sine_wave]).T
         shifted_signal = self.shift_signal(sine_waves, azimuth, elevation)
+        shifted_signal = self.create_zeroes(shifted_signal)
+        return shifted_signal, self.fs
+
+    def create_zeroes(self, shifted_signal: np.ndarray) -> np.ndarray:
+
+        for i in range(self.num_samples//4):
+            for j in range(len(shifted_signal[i])):
+                shifted_signal[i, j] = 0
+
         return shifted_signal
 
 
@@ -75,7 +86,25 @@ if __name__ == "__main__":
                       ))
 
     a = AudioGenerator(coord, 192000, 256)
-    shifted_signal = a.create_signals(60, 120)
+    shifted_signal, fs = a.create_signals(120, 130)
     plt.plot(shifted_signal)
     plt.show()
+
+    b = bf.Bf(coord, fs, 128)
+
+    angle = b.fast_aoa(shifted_signal)
+    print("fast aoa angle:", angle)
+
+    angle = b.fast_faoa(shifted_signal)
+    print("freq fast aoa angles:", angle)
+
+    angle = b.aoa(shifted_signal, b.fdsb, batch_size=8)
+    print("normal freq aoa angles:", angle)
+
+    angle = b.aoa(shifted_signal, b.dsb)
+    print("normal time aoa angles:", angle)
+
+    squared_conv = b.dsb(shifted_signal)
+    vbf.plot_squared_conv(squared_conv, show=True)
+
 # %%
