@@ -37,13 +37,9 @@ class AudioGenerator:
 
         # Frequency delays
         # Shape (hydrophone_number, theta.shape, phi.shape)	
-        deltas = np.moveaxis(delays, 0, -1) 
-        self.deltas = deltas
-        # Shape (num_samples // 2, hydrophone_number, theta.shape, phi.shape)	
-        self.freq_delays = np.array([np.exp(-2j * np.pi * fs * deltas * k / num_samples) 
-                            for k in range(num_samples // 2)]) 	
+        self.deltas = np.moveaxis(delays, 0, -1) 
     
-    def create_sine_wave(self, f=1000) -> np.ndarray:
+    def create_sine_wave(self, f=5000) -> np.ndarray:
         """
         Creates a sine wave with 'num_samples' points with the given frequency
         """
@@ -66,11 +62,10 @@ class AudioGenerator:
         shifted_signal = [cs(x - delay) for delay in self.time_delays[azimuth, elevation, :]]
         return np.array(shifted_signal)
 
-    def create_signals(self, azimuth: int, elevation: int, f=1000) -> np.ndarray:
+    def create_signals(self, azimuth: int, elevation: int, f=5000) -> np.ndarray:
         sine_wave = self.create_sine_wave(f)
-        sine_waves = np.array([sine_wave for i in range(self.freq_delays.shape[1])]).T
-        shifted_signal = self.shift_signal(sine_waves, azimuth, elevation)
-        return shifted_signal
+        shifted_signal = self.shift_signal(sine_wave, azimuth, elevation)
+        return shifted_signal.T
 
 #%%
 if __name__ == "__main__":
@@ -94,8 +89,8 @@ if __name__ == "__main__":
     for i in range(30,150):
         az = i
         el = i
-        sine_wave = a.create_sine_wave(f=5000)
-        y = a.shift_signal(sine_wave[:128], az, el)
-        angle = b.fast_faoa(y.T)
+        y = a.create_signals(az, el, f=5000)
+        angle = b.fast_faoa(y)
         errs.append((az-angle[0], el-angle[1]))
     plt.plot(errs)
+# %%
