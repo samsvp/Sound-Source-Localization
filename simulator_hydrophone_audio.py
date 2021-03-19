@@ -81,7 +81,7 @@ class AudioGenerator:
         shifted_signal = [cs(x - delay) for delay in self.time_delays[azimuth, elevation, :]]
         return np.array(shifted_signal)
 
-    def create_signals(self, azimuth: int, elevation: int, f=5000, add_noise=False, target_snr_db=10) -> np.ndarray:
+    def simulate_signals(self, azimuth: int, elevation: int, f=5000, add_noise=False, target_snr_db=10) -> np.ndarray:
         """
         Simulates signals that would be recorded by the hydrophones with the 
         given azimuth and elevation angles of the sound source relative to the
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     for i in r:
         az = i
         el = i
-        y = a.create_signals(az, el, f=5000, add_noise=True, target_snr_db=20)
+        y = a.simulate_signals(az, el, f=5000, add_noise=True, target_snr_db=20)
         angle = b.fast_faoa(y)
         errs.append((az-angle[0], el-angle[1]))
     plt.plot(r, errs)
