@@ -33,11 +33,6 @@ class AudioGenerator:
 			) # Shape (phi.shape, theta.shape, hydrophone_number)
 
         self.time_delays = time_delays + np.max(np.abs(time_delays))
-        self.n_max = int(np.max(np.abs(self.time_delays)))
-
-        # Frequency delays
-        # Shape (hydrophone_number, theta.shape, phi.shape)	
-        self.deltas = np.moveaxis(delays, 0, -1) 
     
     def create_sine_wave(self, f=5000) -> np.ndarray:
         """
@@ -48,7 +43,31 @@ class AudioGenerator:
         signal = np.sin(2 * np.pi * f * samples)
         return signal
 
+    def add_noise(self, signal: np.ndarray, target_snr_db=10) -> np.ndarray:
+        """
+        Adds noise to a given signal given a target Signal to noise ration.
+        Returns the signal with noise.
+        For more info:
+        https://en.wikipedia.org/wiki/Signal-to-noise_ratio
+        https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python/53688043#53688043
+        """
+        # Calculate signal power and convert to dB 
+        sig_avg_watts = np.mean(signal**2)
+        sig_avg_db = 10 * np.log10(sig_avg_watts)
+        # Calculate noise according to [2] then convert to watts
+        noise_avg_db = sig_avg_db - target_snr_db
+        noise_avg_watts = 10 ** (noise_avg_db / 10)
+        # Generate an sample of white noise
+        mean_noise = 0
+        noise = np.random.normal(mean_noise, np.sqrt(noise_avg_watts), len(signal))
+        # Noise up the original signal
+        noisy_signal = signal + noise
+        return noisy_signal
+
     def interpolate(self, y:np.ndarray) -> CubicSpline:
+        """
+        Returns the cubic spline for a given signal y
+        """
         x = np.arange(len(y))
         cs = CubicSpline(x, y)
         return cs
@@ -62,10 +81,19 @@ class AudioGenerator:
         shifted_signal = [cs(x - delay) for delay in self.time_delays[azimuth, elevation, :]]
         return np.array(shifted_signal)
 
-    def create_signals(self, azimuth: int, elevation: int, f=5000) -> np.ndarray:
+    def create_signals(self, azimuth: int, elevation: int, f=5000, add_noise=False, target_snr_db=10) -> np.ndarray:
+        """
+        Simulates signals that would be recorded by the hydrophones with the 
+        given azimuth and elevation angles of the sound source relative to the
+        hydrophone array.
+        """
         sine_wave = self.create_sine_wave(f)
-        shifted_signal = self.shift_signal(sine_wave, azimuth, elevation)
-        return shifted_signal.T
+        shifted_signal = self.shift_signal(sine_wave, azimuth, elevation).T
+        if add_noise:
+            shifted_noisy_signal = np.array([self.add_noise(signal, target_snr_db) for signal in shifted_signal])
+            return shifted_noisy_signal
+        else:
+            return shifted_signal
 
 #%%
 if __name__ == "__main__":
@@ -86,11 +114,12 @@ if __name__ == "__main__":
     a = AudioGenerator(coord, fs, num_samples)
 
     errs = []
-    for i in range(30,150):
+    r = range(20, 161)
+    for i in r:
         az = i
         el = i
-        y = a.create_signals(az, el, f=5000)
+        y = a.create_signals(az, el, f=5000, add_noise=True, target_snr_db=20)
         angle = b.fast_faoa(y)
         errs.append((az-angle[0], el-angle[1]))
-    plt.plot(errs)
+    plt.plot(r, errs)
 # %%
