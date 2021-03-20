@@ -4,7 +4,7 @@ from simulator_hydrophone_audio import AudioGenerator
 
 from typing import List, Tuple
 
-def create_audio_generator(coord: np.ndarray, fs: int, num_samples: int):
+def create_audio_generator(coord: np.ndarray, fs: int, num_samples: int) -> AudioGenerator:
     audio_generator = AudioGenerator(coord, fs, num_samples)
     return audio_generator
 

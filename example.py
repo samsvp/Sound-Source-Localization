@@ -1,10 +1,9 @@
+#%%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-
 import time
-import timeit
 
 import numpy as np
 import soundfile as sf
@@ -12,8 +11,7 @@ import soundfile as sf
 import beamforming as bf
 import visual_beamforming as vbf
 
-import simulator_hydrophone_audio as sha
-
+#%%
 # Hydrophones coordinates
 distance_x = 18.75e-3
 distance_y = 18.75e-3
@@ -22,91 +20,86 @@ distance     = 3 * 10**-2 # Distance between hydrophones in m
 
 # XY matrix of the hydrophone coordinates
 coord = np.array((
-				[0,0,distance],
-				[0,0,0],
-				[0,0,-distance],
-				[-distance,0,0]
+                            [0,0,distance],
+                            [0,0,0],
+                            [0,0,-distance],
+                            [-distance,0,0]
                 ))
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
-coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-				  [distance_x, 0, -distance_y],
-				  [distance_x, -8.64e-3, distance_y],
-				  [-distance_x, -0.07e-3, distance_y]))
+# coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+#                          [distance_x, 0, -distance_y],
+#                          [distance_x, -8.64e-3, distance_y],
+#                          [-distance_x, -0.07e-3, distance_y]))
 
-y, fs = sf.read('wavs/030719_012.WAV')
+gab_030719 = {
+    "2": (90, 90, 25),"3": (120, 90, 25),"4": (150, 90, 25),"6": (60, 90),"7": (30, 90, 25),
+    "8": (30, 90),"9": (60, 90),"10": (90, 90),"11": (120, 90),"12": (150, 90),
+    "13": (150, 120),"14": (120, 120),"15": (90, 120),"16": (60, 120),"17": (30, 120),
+    "18": (30, 120, 25), "19": (60, 120, 25), "20": (90, 120, 25), "21": (120, 120, 25), "22": (150, 120, 25),
+}
 
-y = y[:,:4]	
+gab_110118 = {
+    "1": (90, 90, 25),"2": (120, 90, 25),"3": (135, 90, 25),"4": (150, 90),"5": (165, 90, 25),
+    "6": (60, 90),"7": (45, 90),"8": (30, 90),"9": (15, 90),"10": (15, 90),
+    "11": (180, 90), "12": (90, 100), "13": (90,120), "14": (90, 135),"15": (120, 135),"16": (135, 135), "17": (150, 135),
+    "18": (60, 120, 25), "19": (45, 120, 25), "20": (30, 120, 25)
+}
 
-y_ref = y																			
 amount_to_read = 128
-
-block_beginning_point = 0
-block_ending_point = amount_to_read
-
+fs = 192000
 b = bf.Bf(coord, fs, amount_to_read)
+err = []
+for i in range(2,21):
+	# if gab_030719[str(i)][0] > 150 or gab_030719[str(i)][0] < 30: continue
+	n =f"0{i}" if i < 10 else str(i) 
+	if i == 5: continue
+	y, fs = sf.read(f'/home/samuel/Sound-Source-Localization/wavs/110118_0{n}.WAV')
+	y = y[:,:4]	
+	y_ref = y																			
 
-thresh = 0.1
 
-while block_ending_point < y.shape[0]:
-	
-	signal_block = y_ref[block_beginning_point:block_ending_point, :]	
-	
-	if signal_block[signal_block>thresh].shape[0] == 0:  # Check if a signal was acquired
-		block_beginning_point += amount_to_read
-		block_ending_point += amount_to_read
-		continue
-	
-	signal_beginning_point = block_beginning_point - int(amount_to_read / 2) + \
-								np.where(signal_block==signal_block[signal_block>thresh][0])[0][0]
+	block_beginning_point = 0
+	block_ending_point = amount_to_read
 
-	block_beginning_point += int(fs/8)
-	block_ending_point = block_beginning_point + amount_to_read
-	
-	if block_ending_point > y.shape[0]: continue
-	signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
-	
-	print(signal.shape)
-	start = time.time()
-	angle = b.fast_aoa(signal)
-	print("normal fast anfle of arrival(aoa)", time.time()-start)
-	print("fast aoa angle:", angle)
+	thresh = 0.1
+	while block_ending_point < y.shape[0]:
+		
+		signal_block = y_ref[block_beginning_point:block_ending_point, :]	
+		
+		if signal_block[signal_block>thresh].shape[0] == 0:  # Check if a signal was acquired
+			block_beginning_point += amount_to_read
+			block_ending_point += amount_to_read
+			continue
 
-	start = time.time()
-	angle = b.fast_faoa(signal)
-	print("\npure frequency fast aoa time", time.time()-start)
-	print("freq fast aoa angles:", angle)
-	
-	#squared_conv = b.fdsb(signal)
-	#vbf.plot_squared_conv(squared_conv)
-	squared_conv = b.dsb(signal)
-	vbf.plot_squared_conv(squared_conv, show=True)
+		signal_beginning_point = block_beginning_point - int(amount_to_read / 2) + \
+									np.where(signal_block==signal_block[signal_block>thresh][0])[0][0]
 
-	start = time.time()
-	angle = b.aoa(signal, b.fdsb, batch_size=8)
-	print("\n normal freq aoa time:", time.time()-start)
-	print("normal freq aoa angles:", angle)
+		block_beginning_point += int(fs/8)
+		block_ending_point = block_beginning_point + amount_to_read
 
-	start = time.time()
-	angle = b.aoa(signal, b.dsb)
-	print("\nnormal time aoa time:", time.time()-start)
-	
-	print(np.unique(angle[0]))
-	print(np.unique(angle[1]))
+		if block_ending_point > y.shape[0]: continue
 
-	break
+		signal = y[signal_beginning_point:signal_beginning_point + amount_to_read,:]
 
-# vbf.plot_array(coord)
+		if len(signal) == 0: continue
 
-# speed test
-# iter_number = 100
+		start = time.time()
+		angle = b.fast_faoa(signal)
+		print(i)
+		print("pure frequency fast aoa time", time.time()-start)
+		print("freq fast aoa angles:", angle)
+		
+		err.append(angle[0] - gab_030719[str(i)][0])
+		# z.append(angle[0])
+		# # squared_conv = b.fdsb(signal, delays=b.fast_freq_delays)
+		# # vbf.plot_squared_conv(squared_conv, show=True)
 
-# t = timeit.timeit("b.fast_aoa(signal)", number=iter_number, globals=globals())/iter_number
-# print("\nfast aoa:", t)
+		# # squared_conv = b.dsb(signal, delays=b.fast_time_delays)
+		# # vbf.plot_squared_conv(squared_conv, show=True)
 
-# t = timeit.timeit("b.aoa(signal, b.fdsb)", number=iter_number, globals=globals())/iter_number
-# print("\nfreq aoa:", t)
+		break
 
-# t = timeit.timeit("b.aoa(signal, b.dsb)", number=iter_number, globals=globals())/iter_number
-# print("\ntime aoa:", t)
+plt.plot(err, "o-")
+# %%

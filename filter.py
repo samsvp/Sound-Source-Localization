@@ -10,6 +10,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.linear_model import SGDRegressor
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor, AdaBoostRegressor
+from catboost import CatBoostRegressor
 
 from generate_dataset import create_audio_generator, generate_training_set
 
@@ -28,7 +29,7 @@ def get_phase_shift(signal: np.ndarray) -> np.ndarray:
         time_shifts.append(dt[xcorr.argmax()])
     return np.array(time_shifts)
 
-def moving_average(x, w):
+def moving_average(x: np.ndarray, w: int) -> np.ndarray:
     return np.convolve(x, np.ones(w), 'valid') / w
 
 def score(kmeans, X, y):
@@ -45,7 +46,6 @@ def score_regression(clf, X, y):
         errs.append(p-y[i])
     return errs
 
-
 # %%
 # Create dataset
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
@@ -56,21 +56,11 @@ coord = np.array(([-distance_x, -8.41e-3, -distance_y],
                 [-distance_x, -0.07e-3, distance_y]
             ))
 
-distance     = 3 * 10**-2 # Distance between hydrophones in m
-
-# XY matrix of the hydrophone coordinates
-coord = np.array((
-				[0,0,distance],
-				[0,0,0],
-				[0,0,-distance],
-				[-distance,0,0]
-                ))
-
 fs = 192000
 num_samples = 256
 audio_generator = create_audio_generator(coord, fs, num_samples)
 
-angles_range = (30, 150)
+angles_range = (0, 180)
 training_size = 10000
 _X, y = generate_training_set(training_size, audio_generator, f=12500, angles_range=angles_range)
 
@@ -83,10 +73,12 @@ _X_val, y_val = generate_training_set(validation_size, audio_generator, f=12500,
 X = [get_phase_shift(x) for x in _X]
 X_val = [get_phase_shift(x) for x in _X_val]
 
+az = [angles[0] for angles in y]
+az_val = [angles[0] for angles in y_val]
 # %%
 # Instantiate regressors and get real data for validation
 
-with open("Data/data_ipqm.json") as f:
+with open("Data/data.json") as f:
     data = json.load(f)
 
 # azimuth(rad), elevation(rad), frequency(kHz)
@@ -117,10 +109,75 @@ regressors = {
 }
 
 # %%
-# train
-az = [angles[0] for angles in y]
-az_val = [angles[0] for angles in y_val]
+predictors = [regressors["SVR"], regressors["KNeighborsRegressor"],
+              regressors["RandomForestRegressor"], regressors["DecisionTreeRegressor"]]
 
+
+
+# _outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
+# outputs = [[o[0] for o in out] for out in _outputs]
+
+# for i in range(len(outputs)):
+#     print(i)
+#     outputs[i].append(b.fast_aoa(_X[i]))
+
+# stacker = RandomForestRegressor(n_estimators=100, random_state=0)
+# stacker.fit(outputs, az)
+
+# e = []
+# for k in data:
+#     _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
+#     _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
+#     ps = [[p[0] for p in _p] for _p in _ps]
+#     p = stacker.predict(ps)
+#     print(k, p[0] - gab_030719[k][0])
+#     e.append(p[0] - gab_030719[k][0])
+# plt.plot(e, "o-")
+# plt.show()
+
+
+_outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
+outputs = [[o[0] for o in out] for out in _outputs]
+
+for i in range(len(outputs)):
+    print(i)
+    outputs[i].append(b.fast_aoa(_X[i]))
+
+stacker = RandomForestRegressor(n_estimators=100, random_state=0)
+stacker.fit(outputs, az)
+
+e = []
+for k in data:
+    _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
+    _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
+    ps = [[p[0] for p in _p] for _p in _ps]
+    p = stacker.predict(ps)
+    print(k, p[0] - gab_030719[k][0])
+    e.append(p[0] - gab_030719[k][0])
+plt.plot(e, "o-")
+plt.show()
+for i in range(len(predictors)):
+    print(f"Training regressor {i}")
+    predictors[i].fit(X, az)
+
+outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
+
+stacker = RandomForestRegressor(n_estimators=100, random_state=0)
+stacker.fit([[o[0] for o in out] for out in outputs], az)
+
+e = []
+for k in data:
+    _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
+    _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
+    ps = [[p[0] for p in _p] for _p in _ps]
+    p = stacker.predict(ps)
+    print(k, p[0] - gab_030719[k][0])
+    e.append(p[0] - gab_030719[k][0])
+plt.plot(e, "o-")
+plt.show()
+
+# %%
+# train
 for regressor in regressors:
     print(regressor)
     clf = regressors[regressor]
@@ -129,7 +186,7 @@ for regressor in regressors:
     plt.plot(errs)
     plt.show()
 
-    e = []
+    # e = []
     # for k in data:
     #     _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
     #     ps = [clf.predict(x.flatten().reshape(1,-1)) for x in _x]
@@ -141,20 +198,13 @@ for regressor in regressors:
     for k in data:
         _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
         ps = [clf.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3)) for x in _x]
-        if gab_110118[k][0] <= 30 or gab_110118[k][0] >= 150: continue
-        print(k, ps[0][0] - gab_110118[k][0])
-        e.append(ps[0][0] - gab_110118[k][0])
+        # if gab_030719[k][0] <= 30 or gab_030719[k][0] >= 150: continue
+        print(k, ps[0][0] - gab_030719[k][0])
+        e.append(ps[0][0] - gab_030719[k][0])
     plt.plot(e, "o-")
     plt.show()
-
-# %%
-print("Voting")
-clf = VotingRegressor(estimators=[("svr", svm.SVR()), ("rf", RandomForestRegressor(n_estimators=100, random_state=1)),
-            ("KNN", KNeighborsRegressor()), ("Ada", AdaBoostRegressor(random_state=0, n_estimators=100))])
-clf.fit(X, az)
-errs = _score(clf, X_val, az_val)
-plt.plot(errs)
 
 # _data_set = np.array([np.array(data[str(i)]) for i in range(1, 11)])
 # data_set = np.array([dt for _set in _data_set[:-1] for dt in _set])
 # flat_data_set = data_set.reshape(data_set.shape[0], -1)
+# %%
