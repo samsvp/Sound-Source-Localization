@@ -4,14 +4,15 @@ import numpy as np
 from time import time
 import matplotlib.pyplot as plt
 from scipy.signal import correlate
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.neural_network import MLPRegressor
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.linear_model import SGDRegressor
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor, AdaBoostRegressor
-from catboost import CatBoostRegressor
+from sklearn.svm import SVR, SVC
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.linear_model import SGDRegressor, SGDClassifier
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor, \
+    AdaBoostRegressor, RandomForestClassifier, AdaBoostClassifier
 
+import beamforming as bf
 from generate_dataset import create_audio_generator, generate_training_set
 
 
@@ -36,7 +37,7 @@ def score(kmeans, X, y):
     r = 0
     for i,x in enumerate(X):
         p = kmeans.predict(x.reshape(1, x.shape[0]))
-        if p[0] == y[i]: r+= 1
+        if p[0] == y[i]: r += 1
     return r, r/len(y)
 
 def score_regression(clf, X, y):
@@ -58,14 +59,15 @@ coord = np.array(([-distance_x, -8.41e-3, -distance_y],
 
 fs = 192000
 num_samples = 256
+b = bf.Bf(coord, fs, num_samples // 2)
 audio_generator = create_audio_generator(coord, fs, num_samples)
 
 angles_range = (0, 180)
-training_size = 10000
-_X, y = generate_training_set(training_size, audio_generator, f=12500, angles_range=angles_range)
+training_size = 5000
+_X, y = generate_training_set(training_size, audio_generator, f=5000, add_noise=False, angles_range=angles_range)
 
 validation_size = training_size // 10
-_X_val, y_val = generate_training_set(validation_size, audio_generator, f=12500, angles_range=angles_range)
+_X_val, y_val = generate_training_set(validation_size, audio_generator, f=5000, add_noise=False, angles_range=angles_range)
 
 # X = [np.array([moving_average(x, 10) for x in _x.T]).flatten() for _x in _X]
 # X_val = [np.array([moving_average(x, 10) for x in _x.T]).flatten() for _x in _X_val]
@@ -75,11 +77,20 @@ X_val = [get_phase_shift(x) for x in _X_val]
 
 az = [angles[0] for angles in y]
 az_val = [angles[0] for angles in y_val]
+
+azc = [angles[0]//10 * 10 for angles in y]
+azc_val = [angles[0]//10 * 10 for angles in y_val]
+
+el = [angles[1] for angles in y]
+el_val = [angles[1] for angles in y_val]
 # %%
 # Instantiate regressors and get real data for validation
 
 with open("Data/data.json") as f:
     data = json.load(f)
+
+with open("Data/data_ipqm.json") as f:
+    data_ipqm = json.load(f)
 
 # azimuth(rad), elevation(rad), frequency(kHz)
 gab_030719 = {
@@ -108,76 +119,18 @@ regressors = {
     "AdaBoostRegressor": AdaBoostRegressor(random_state=0, n_estimators=100)
 }
 
-# %%
-predictors = [regressors["SVR"], regressors["KNeighborsRegressor"],
-              regressors["RandomForestRegressor"], regressors["DecisionTreeRegressor"]]
-
-
-
-# _outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
-# outputs = [[o[0] for o in out] for out in _outputs]
-
-# for i in range(len(outputs)):
-#     print(i)
-#     outputs[i].append(b.fast_aoa(_X[i]))
-
-# stacker = RandomForestRegressor(n_estimators=100, random_state=0)
-# stacker.fit(outputs, az)
-
-# e = []
-# for k in data:
-#     _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
-#     _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
-#     ps = [[p[0] for p in _p] for _p in _ps]
-#     p = stacker.predict(ps)
-#     print(k, p[0] - gab_030719[k][0])
-#     e.append(p[0] - gab_030719[k][0])
-# plt.plot(e, "o-")
-# plt.show()
-
-
-_outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
-outputs = [[o[0] for o in out] for out in _outputs]
-
-for i in range(len(outputs)):
-    print(i)
-    outputs[i].append(b.fast_aoa(_X[i]))
-
-stacker = RandomForestRegressor(n_estimators=100, random_state=0)
-stacker.fit(outputs, az)
-
-e = []
-for k in data:
-    _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
-    _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
-    ps = [[p[0] for p in _p] for _p in _ps]
-    p = stacker.predict(ps)
-    print(k, p[0] - gab_030719[k][0])
-    e.append(p[0] - gab_030719[k][0])
-plt.plot(e, "o-")
-plt.show()
-for i in range(len(predictors)):
-    print(f"Training regressor {i}")
-    predictors[i].fit(X, az)
-
-outputs = [[pred.predict(x.reshape(-1, 3)) for pred in predictors] for x in X]
-
-stacker = RandomForestRegressor(n_estimators=100, random_state=0)
-stacker.fit([[o[0] for o in out] for out in outputs], az)
-
-e = []
-for k in data:
-    _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
-    _ps = [[pred.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3))for pred in predictors] for x in _x]
-    ps = [[p[0] for p in _p] for _p in _ps]
-    p = stacker.predict(ps)
-    print(k, p[0] - gab_030719[k][0])
-    e.append(p[0] - gab_030719[k][0])
-plt.plot(e, "o-")
-plt.show()
+classifiers = {
+    "SVC": SVC(),
+    "DecisionTreeClassifier": DecisionTreeClassifier(),
+    "MLPClassifier": MLPClassifier(),
+    "KNeighborsClassifier": KNeighborsClassifier(),
+    "SGDClassifier": SGDClassifier(max_iter=10000, tol=1e-3),
+    "RandomForestClassifier": RandomForestClassifier(n_estimators=100, random_state=1),
+    "AdaBoostClassifier": AdaBoostClassifier(random_state=0, n_estimators=100)
+}
 
 # %%
-# train
+# train regressors
 for regressor in regressors:
     print(regressor)
     clf = regressors[regressor]
@@ -186,25 +139,45 @@ for regressor in regressors:
     plt.plot(errs)
     plt.show()
 
-    # e = []
-    # for k in data:
-    #     _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
-    #     ps = [clf.predict(x.flatten().reshape(1,-1)) for x in _x]
-    #     print(k, ps[0][0] - gab_030719[k][0])
-    #     e.append(ps[0][0] - gab_030719[k][0])
-    # plt.plot(e, "o-")
-    
     e = []
     for k in data:
         _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
         ps = [clf.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3)) for x in _x]
-        # if gab_030719[k][0] <= 30 or gab_030719[k][0] >= 150: continue
-        print(k, ps[0][0] - gab_030719[k][0])
+        print(k, int(ps[0][0]), gab_030719[k][0], ps[0][0] - gab_030719[k][0])
         e.append(ps[0][0] - gab_030719[k][0])
     plt.plot(e, "o-")
     plt.show()
 
-# _data_set = np.array([np.array(data[str(i)]) for i in range(1, 11)])
-# data_set = np.array([dt for _set in _data_set[:-1] for dt in _set])
-# flat_data_set = data_set.reshape(data_set.shape[0], -1)
+e = []
+for i in range(len(_X_val)):
+    a = b.fast_aoa(_X_val[i])[0]
+    e.append(a - az_val[i])
+plt.plot(e, "-")
+plt.show()
+
+# %%
+# train classifiers
+for classifier in classifiers:
+    print(classifier)
+    clf = classifiers[classifier]
+    clf.fit(X, azc)
+    errs = score_regression(clf, X_val, azc_val)
+    plt.plot(errs)
+    plt.show()
+
+    e = []
+    for k in data:
+        _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
+        ps = [clf.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3)) for x in _x]
+        print(k, int(ps[0][0]), gab_030719[k][0], ps[0][0] - gab_030719[k][0])
+        e.append(ps[0][0] - gab_030719[k][0])
+    plt.plot(e, "o-")
+    plt.show()
+
+e = []
+for i in range(len(_X_val)):
+    a = b.fast_aoa(_X_val[i])[0]
+    e.append(a - az_val[i])
+plt.plot(e, "-")
+plt.show()
 # %%
