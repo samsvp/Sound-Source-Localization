@@ -1,5 +1,9 @@
+# Neural network weights
+weights/
+
 # vscode
 .vscode
+
 # Wav files
 *.WAV
 *.wav
