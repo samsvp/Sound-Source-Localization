@@ -203,16 +203,16 @@ for i in range(len(_X_val)):
 plt.plot(e, "-")
 plt.show()
 # %%
-predictors = [regressors["KNeighborsRegressor"], regressors["SVR"],
-                regressors["DecisionTreeRegressor"], regressors["RandomForestRegressor"]]
+predictors = [regressors["KNeighborsRegressor"],regressors["RandomForestRegressor"],
+              regressors["SGDRegressor"]]
 
 for i in range(len(predictors)):
     predictors[i].fit(X, az)
 
 outputs = [[pred.predict(x.reshape(-1, 3))[0] for pred in predictors] for x in X]
 for i in range(len(outputs)):
+    if not i%100: print(f"Processed {i}")
     outputs[i].append(b.fast_aoa(_X[i])[0])
-
 
 # %%
 import tensorflow as tf
