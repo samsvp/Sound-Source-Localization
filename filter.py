@@ -11,7 +11,7 @@ from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.linear_model import SGDRegressor, SGDClassifier
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, VotingRegressor, \
     AdaBoostRegressor, RandomForestClassifier, AdaBoostClassifier
-
+import stacking as stk
 import beamforming as bf
 from generate_dataset import create_audio_generator, generate_training_set
 
@@ -128,6 +128,34 @@ classifiers = {
     "RandomForestClassifier": RandomForestClassifier(n_estimators=100, random_state=1),
     "AdaBoostClassifier": AdaBoostClassifier(random_state=0, n_estimators=100)
 }
+
+# %%
+# train regressors in stacking
+for regressor in regressors:
+    print(regressor)
+    clf = regressors[regressor]
+    result = stk.stacker(np.array(X),np.array(az),X_val,clf)
+    errs = []
+    for i in range(len(result)):
+        errs.append(result[i]-az_val[i])
+    plt.plot(errs)
+    plt.show()
+
+    e = []
+    for k in data:
+        _x = [np.array([moving_average(d, 10) for d in np.array(dt).T]) for dt in data[k]]
+        ps = [clf.predict(get_phase_shift(np.array(x.T)).reshape(-1, 3)) for x in _x]
+        print(k, int(ps[0][0]), gab_030719[k][0], ps[0][0] - gab_030719[k][0])
+        e.append(ps[0][0] - gab_030719[k][0])
+    plt.plot(e, "o-")
+    plt.show()
+
+e = []
+for i in range(len(_X_val)):
+    a = b.fast_aoa(_X_val[i])[0]
+    e.append(a - az_val[i])
+plt.plot(e, "-")
+plt.show()
 
 # %%
 # train regressors

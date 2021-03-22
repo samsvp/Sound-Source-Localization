@@ -62,4 +62,4 @@ def stacker(x,y,test_data,regressor):
 
 
 
-    return full_y_minitest,y_pred_cv
+    return y_pred_cv
