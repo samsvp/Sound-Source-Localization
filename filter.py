@@ -47,6 +47,19 @@ def score_regression(clf, X, y):
         errs.append(p-y[i])
     return errs
 
+def plot_error(values, labels, title):
+    x = np.arange(len(labels))  # the label locations
+    width = 0.35  # the width of the bars
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(x - width/2, np.abs(values[0]) + 1, width, label="f")
+    rects2 = ax.bar(x + width/2, np.abs(values[1]) + 1, width, label='s')
+    ax.set_ylabel('Abs Error + 1')
+    ax.set_title(title)
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
+
+
 # %%
 # Create dataset
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
@@ -56,6 +69,16 @@ coord = np.array(([-distance_x, -8.41e-3, -distance_y],
                 [distance_x, -8.64e-3, distance_y],
                 [-distance_x, -0.07e-3, distance_y]
             ))
+
+distance     = 3 * 10**-2 # Distance between hydrophones in m
+
+# XY matrix of the hydrophone coordinates
+coord = np.array((
+        [0,0,distance],
+        [0,0,0],
+        [0,0,-distance],
+        [-distance,0,0]
+    ))
 
 fs = 192000
 num_samples = 256
@@ -103,8 +126,8 @@ gab_030719 = {
 gab_110118 = {
     "1": (90, 90, 25),"2": (120, 90, 25),"3": (135, 90, 25),"4": (150, 90),"5": (165, 90, 25),
     "6": (60, 90),"7": (45, 90),"8": (30, 90),"9": (15, 90),"10": (15, 90),
-    "11": (180, 90), "12": (90, 100), "13": (90,120), "14": (90, 135),"15": (120, 135),"16": (135, 135), "17": (150, 135),
-    "18": (60, 120, 25), "19": (45, 120, 25), "20": (30, 120, 25)
+    "11": (180, 90), "12": (90, 80), "13": (90,60), "14": (90, 45),"15": (120, 45),"16": (135, 45), "17": (150, 45),
+    "18": (60, 60, 25), "19": (45, 60, 25), "20": (30, 120, 25)
 }
 
 regressors = {
@@ -129,6 +152,87 @@ classifiers = {
     "AdaBoostClassifier": AdaBoostClassifier(random_state=0, n_estimators=100)
 }
 
+#%%
+distance_x = (19.051e-3)/2  # Distance between hydrophones in m
+distance_y = (18.37e-3)/2
+coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+                [distance_x, 0, -distance_y],
+                [distance_x, -8.64e-3, distance_y],
+                [-distance_x, -0.07e-3, distance_y]
+            ))
+
+fs = 192000
+num_samples = 256
+
+bn = bf.Bf(coord, fs, num_samples // 2)
+
+e_freq_a = []
+e_stime_a = []
+e_freq_e = []
+e_stime_e = []
+for k in data:
+    a, e = bn.fast_faoa(np.array(data[k][0]))
+    _as, es = bn.s_aoa(np.array(data[k][0]))
+    e_freq_a.append((a - gab_030719[k][0]))
+    e_stime_a.append((_as[0] - gab_030719[k][0]))
+    e_freq_e.append((e - gab_030719[k][1]))
+    e_stime_e.append((es[0] - gab_030719[k][1]))
+plt.plot(e_freq_a, 'o-b')
+plt.plot(e_stime_a, "o-r")
+plt.plot([0] * len(e_stime_a))
+plt.title("Azimuth nautilus")
+plot_error([e_freq_a, e_stime_a], range(len(e_freq_a)), "Nautilus data: azimuth")
+plt.plot(e_freq_e, 'o-b')
+plt.plot(e_stime_e, "o-r")
+plt.plot([0] * len(e_stime_e))
+plt.title("Elevation nautilus")
+plot_error([e_freq_e, e_stime_e], range(len(e_freq_e)), "Nautilus data: elevation")
+print("error: freq, time")
+print(f"azimuth error: {np.sum(np.abs(e_freq_a))}, {np.sum(np.abs(e_stime_a))}")
+print(f"elevation error: {np.sum(np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_e))}")
+print(f"total error: {np.sum(np.abs(e_freq_a) + np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))}")
+#%%
+distance     = 3 * 10**-2 # Distance between hydrophones in m
+
+# XY matrix of the hydrophone coordinates
+coord = np.array((
+        [0,0,distance],
+        [0,0,0],
+        [0,0,-distance],
+        [-distance,0,0]
+    ))
+
+fs = 192000
+num_samples = 256
+bi = bf.Bf(coord, fs, num_samples // 2)
+
+
+e_freq_a = []
+e_stime_a = []
+e_freq_e = []
+e_stime_e = []
+for k in data_ipqm:
+    if k in ["12", "15", "20"]: continue
+    a, e = bi.fast_faoa(np.array(data_ipqm[k][0]))
+    _as, es = bi.s_aoa(np.array(data_ipqm[k][0]))
+    e_freq_a.append((a - gab_110118[k][0]))
+    e_stime_a.append((_as[0] - gab_110118[k][0]))
+    e_freq_e.append((e - gab_110118[k][1]))
+    e_stime_e.append((es[0] - gab_110118[k][1]))
+plt.plot(e_freq_a, 'o-b')
+plt.plot(e_stime_a, "o-r")
+plt.plot([0] * len(e_stime_a))
+plt.title("Azimuth IPQM")
+plot_error([e_freq_a, e_stime_a], range(len(e_freq_a)), "IPQM data: azimuth")
+plt.plot(e_freq_e, 'o-b')
+plt.plot(e_stime_e, "o-r")
+plt.plot([0] * len(e_stime_e))
+plt.title("Elevation IPQM")
+plot_error([e_freq_e, e_stime_e], range(len(e_freq_e)), "IPQM data: elevation")
+print("error: freq, time")
+print(f"azimuth error: {np.sum(np.abs(e_freq_a))}, {np.sum(np.abs(e_stime_a))}")
+print(f"elevation error: {np.sum(np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_e))}")
+print(f"total error: {np.sum(np.abs(e_freq_a) + np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))}")
 # %%
 # train regressors in stacking
 for regressor in regressors:
@@ -236,12 +340,18 @@ def build_model():
 
 model = build_model()
 
-for i in range(10):
-    EPOCHS = 1000
+for i in range(1):
+    EPOCHS = 100
 
     history = model.fit(np.array(X), np.array(az),
     epochs=EPOCHS, validation_split=0.2, verbose=1)
 
+# %%
+eb = []
+for k in data:
+    eb.append(np.abs(s_aoa(np.array(data[k][0]))[0] - gab_030719[k][0]))
+plt.plot(eb, "o-r")
+# %%
     eb = []
     e = []
     for k in data:
@@ -276,8 +386,8 @@ def build_model_b():
 
 model = build_model_b()
 
-for i in range(10):
-    EPOCHS = 1000
+for i in range(1):
+    EPOCHS = 100
     history = model.fit(np.array(outputs), np.array(az),
     epochs=EPOCHS, validation_split=0.2, verbose=1)
     e = []

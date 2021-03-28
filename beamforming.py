@@ -4,6 +4,7 @@ from __future__ import division
 
 import time
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 class Bf:
@@ -41,6 +42,12 @@ class Bf:
 		# Update the maximum value
 		self.n_max = int(np.max(self.time_delays)) 
 
+		time_delays_s = np.swapaxes(
+				(fs * delays).T, 1, 2
+			) # Shape (phi.shape, theta.shape, hydrophone_number)
+
+		self.time_delays_s = time_delays_s + np.max(np.abs(time_delays_s))
+
 		# Frequency delays
 		# Shape (hydrophone_number, theta.shape, phi.shape)	
 		deltas = np.moveaxis(delays, 0, -1) 
@@ -55,6 +62,8 @@ class Bf:
 		
 		self.fast_time_delays = self.time_delays[::self.time_skip, ::self.time_skip,:]
 				
+		self.fast_time_delays_s = self.time_delays_s[::self.time_skip, ::self.time_skip,:]
+
 		self.num_samples = num_samples  # Number of samples to read
 
 
@@ -117,7 +126,99 @@ class Bf:
 		angles = np.where(squared_conv == squared_conv.max())
 		return angles
 		
+
+	def ps_aoa(self, signal):
+		def interpolate(y:np.ndarray) -> CubicSpline:
+			"""
+			Returns the cubic spline for a given signal y
+			"""
+			x = np.arange(len(y))
+			cs = CubicSpline(x, y)
+			return cs
+
+		css = [interpolate(signal[:,i]) for i in range(4)]
+
+		delays = self.time_delays_s
+		
+		x = np.arange(len(signal))
+		shifted_signal = [ [ [
+					css[i](x + d)
+					for i,d in enumerate(dly) ]
+					for dly in delay ]
+					for delay in delays ]
+
+		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
+
+		angles = np.where(squared_conv == squared_conv.max())
+
+		# az_lower_bound = self.time_skip * angles[0][0]-self.time_skip 
+		# az_upper_bound = self.time_skip * angles[0][0]+self.time_skip
+		# el_lower_bound = self.time_skip * angles[1][0]-self.time_skip
+		# el_upper_bound = self.time_skip * angles[1][0]+self.time_skip
+
+		# if el_lower_bound < 0: el_lower_bound = 0
+		# if az_lower_bound < 0: az_lower_bound = 0
+
+		# delays = self.time_delays_s[
+		# 			az_lower_bound:az_upper_bound,
+		# 			el_lower_bound:el_upper_bound,
+		# 			:
+		# 		]
+		
+		# x = np.arange(len(signal))
+		# shifted_signal = [ [ [
+		# 			css[i](x + d)
+		# 			for i,d in enumerate(dly) ]
+		# 			for dly in delay ]
+		# 			for delay in delays ]
+
+		# squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
+
+		# angles = np.where(squared_conv == squared_conv.max())
+		# az_offset, el_offset = angles[0], angles[1]
+		return angles[0][0], angles[1][0]
 	
+
+	def s_aoa(self, signal):
+		def interpolate(y:np.ndarray) -> CubicSpline:
+			"""
+			Returns the cubic spline for a given signal y
+			"""
+			x = np.arange(len(y))
+			cs = CubicSpline(x, y)
+			return cs
+
+		angles = self.aoa(signal, bf=self.fdsb, delays=self.fast_freq_delays)
+
+		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
+		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
+		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
+		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
+
+		if el_lower_bound < 0: el_lower_bound = 0
+		if az_lower_bound < 0: az_lower_bound = 0
+
+		delays = self.time_delays_s[
+					az_lower_bound:az_upper_bound,
+					el_lower_bound:el_upper_bound,
+					:
+				]
+
+		css = [interpolate(signal[:,i]) for i in range(4)]
+		x = np.arange(len(signal))
+		shifted_signal = [ [ [
+					css[i](x + d)
+					for i,d in enumerate(dly) ]
+					for dly in delay ]
+					for delay in delays ]
+
+		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
+
+		angles = np.where(squared_conv == squared_conv.max())
+		az_offset, el_offset = angles[0], angles[1]
+		return (az_lower_bound + az_offset, el_lower_bound + el_offset)
+	
+
 	def fast_aoa(self, signal):
 		"""
         Fast delay-and-sum beamforming.
