@@ -127,7 +127,7 @@ class Bf:
 		return angles
 
 
-	def s_aoa(self, signal):
+	def s_aoa(self, signal, f_weight=1, s_weight=1):
 		def interpolate(y:np.ndarray) -> CubicSpline:
 			"""
 			Returns the cubic spline for a given signal y
@@ -160,7 +160,22 @@ class Bf:
 					for dly in delay ]
 					for delay in delays ]
 
-		squared_conv = ((np.sum(shifted_signal,axis=2))**2).sum(-1).T
+		# print(np.array(shifted_signal).shape)
+		squared_conv_stime = ((np.sum(shifted_signal,axis=2))**2).sum(-1)
+
+		#### freq ####
+		freq_delays = self.freq_delays[:,:,
+					az_lower_bound:az_upper_bound,
+					el_lower_bound:el_upper_bound 
+				]
+
+		squared_conv_freq = self.fdsb(signal, delays=freq_delays)
+
+		squared_conv = s_weight * squared_conv_stime/np.max(squared_conv_stime) + f_weight * squared_conv_freq/np.max(squared_conv_freq)
+
+		# import visual_beamforming as vbf
+		# squared_conv = self.fdsb(signal, delays=delays)
+		# vbf.plot_squared_conv(squared_conv, show=True)
 
 		angles = np.where(squared_conv == squared_conv.max())
 		az_offset, el_offset = angles[0], angles[1]
@@ -219,9 +234,14 @@ class Bf:
 					el_lower_bound:el_upper_bound 
 				]
 
+
+		# import visual_beamforming as vbf
+		# squared_conv = self.fdsb(signal, delays=delays)
+		# vbf.plot_squared_conv(squared_conv, show=True)
+
 		# Apply the frequency domain beamforming
 		az_offset, el_offset = (a[0] for a in self.aoa(signal, bf=self.fdsb, delays=delays, batch_size=1))
-
+		# print("angles", az_offset, el_offset)
 		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
 
 		return azimuth, elevation

@@ -70,15 +70,15 @@ coord = np.array(([-distance_x, -8.41e-3, -distance_y],
                 [-distance_x, -0.07e-3, distance_y]
             ))
 
-distance     = 3 * 10**-2 # Distance between hydrophones in m
+# distance     = 3 * 10**-2 # Distance between hydrophones in m
 
-# XY matrix of the hydrophone coordinates
-coord = np.array((
-        [0,0,distance],
-        [0,0,0],
-        [0,0,-distance],
-        [-distance,0,0]
-    ))
+# # XY matrix of the hydrophone coordinates
+# coord = np.array((
+#         [0,0,distance],
+#         [0,0,0],
+#         [0,0,-distance],
+#         [-distance,0,0]
+#     ))
 
 fs = 192000
 num_samples = 256
@@ -166,31 +166,38 @@ num_samples = 256
 
 bn = bf.Bf(coord, fs, num_samples // 2)
 
-e_freq_a = []
-e_stime_a = []
-e_freq_e = []
-e_stime_e = []
-for k in data:
-    a, e = bn.fast_faoa(np.array(data[k][0]))
-    _as, es = bn.s_aoa(np.array(data[k][0]))
-    e_freq_a.append((a - gab_030719[k][0]))
-    e_stime_a.append((_as[0] - gab_030719[k][0]))
-    e_freq_e.append((e - gab_030719[k][1]))
-    e_stime_e.append((es[0] - gab_030719[k][1]))
-plt.plot(e_freq_a, 'o-b')
-plt.plot(e_stime_a, "o-r")
-plt.plot([0] * len(e_stime_a))
-plt.title("Azimuth nautilus")
-plot_error([e_freq_a, e_stime_a], range(len(e_freq_a)), "Nautilus data: azimuth")
-plt.plot(e_freq_e, 'o-b')
-plt.plot(e_stime_e, "o-r")
-plt.plot([0] * len(e_stime_e))
-plt.title("Elevation nautilus")
-plot_error([e_freq_e, e_stime_e], range(len(e_freq_e)), "Nautilus data: elevation")
-print("error: freq, time")
-print(f"azimuth error: {np.sum(np.abs(e_freq_a))}, {np.sum(np.abs(e_stime_a))}")
-print(f"elevation error: {np.sum(np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_e))}")
-print(f"total error: {np.sum(np.abs(e_freq_a) + np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))}")
+best = 0
+lowest = 100000
+for i in np.arange(0,1,1.):
+    print(i)
+    e_freq_a = []
+    e_stime_a = []
+    e_freq_e = []
+    e_stime_e = []
+    for k in data:
+        a, e = bn.fast_faoa(np.array(data[k][0]))
+        _as, es = bn.s_aoa(np.array(data[k][0]), f_weight=i)
+        e_freq_a.append((a - gab_030719[k][0]))
+        e_stime_a.append((_as[0] - gab_030719[k][0]))
+        e_freq_e.append((e - gab_030719[k][1]))
+        e_stime_e.append((es[0] - gab_030719[k][1]))
+    plt.plot(e_freq_a, 'o-b')
+    plt.plot(e_stime_a, "o-r")
+    plt.plot([0] * len(e_stime_a))
+    plt.title("Azimuth nautilus")
+    plot_error([e_freq_a, e_stime_a], range(len(e_freq_a)), "Nautilus data: azimuth")
+    plt.plot(e_freq_e, 'o-b')
+    plt.plot(e_stime_e, "o-r")
+    plt.plot([0] * len(e_stime_e))
+    plt.title("Elevation nautilus")
+    plot_error([e_freq_e, e_stime_e], range(len(e_freq_e)), "Nautilus data: elevation")
+    print("error: freq, time")
+    print(f"azimuth error: {np.sum(np.abs(e_freq_a))}, {np.sum(np.abs(e_stime_a))}")
+    print(f"elevation error: {np.sum(np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_e))}")
+    print(f"total error: {np.sum(np.abs(e_freq_a) + np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))}")
+    if np.sum(np.abs(e_stime_a)+np.abs(e_stime_e)) < lowest:
+        lowest = np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))
+        best = i
 #%%
 distance     = 3 * 10**-2 # Distance between hydrophones in m
 
@@ -206,7 +213,6 @@ fs = 192000
 num_samples = 256
 bi = bf.Bf(coord, fs, num_samples // 2)
 
-
 e_freq_a = []
 e_stime_a = []
 e_freq_e = []
@@ -214,7 +220,7 @@ e_stime_e = []
 for k in data_ipqm:
     if k in ["12", "15", "20"]: continue
     a, e = bi.fast_faoa(np.array(data_ipqm[k][0]))
-    _as, es = bi.s_aoa(np.array(data_ipqm[k][0]))
+    _as, es = bi.s_aoa(np.array(data_ipqm[k][0]), f_weight=0)
     e_freq_a.append((a - gab_110118[k][0]))
     e_stime_a.append((_as[0] - gab_110118[k][0]))
     e_freq_e.append((e - gab_110118[k][1]))
@@ -256,7 +262,7 @@ for regressor in regressors:
 
 e = []
 for i in range(len(_X_val)):
-    a = b.fast_aoa(_X_val[i])[0]
+    a = b.fast_faoa(_X_val[i])[0]
     e.append(a - az_val[i])
 plt.plot(e, "-")
 plt.show()
