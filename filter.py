@@ -86,7 +86,7 @@ b = bf.Bf(coord, fs, num_samples // 2)
 audio_generator = create_audio_generator(coord, fs, num_samples)
 
 angles_range = (0, 180)
-training_size = 10000
+training_size = 25000
 _X, y = generate_training_set(training_size, audio_generator, f=5000, add_noise=False, angles_range=angles_range)
 
 validation_size = training_size // 10
@@ -239,6 +239,90 @@ print("error: freq, time")
 print(f"azimuth error: {np.sum(np.abs(e_freq_a))}, {np.sum(np.abs(e_stime_a))}")
 print(f"elevation error: {np.sum(np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_e))}")
 print(f"total error: {np.sum(np.abs(e_freq_a) + np.abs(e_freq_e))}, {np.sum(np.abs(e_stime_a)+np.abs(e_stime_e))}")
+
+#%%
+# find the error
+results = {}
+for i in range(len(_X)):
+    if not (i%100): print(i)
+    angles = b.fast_faoa(_X[i])
+    ea = (angles[0] - az[i])
+    ee = (angles[1] - el[i])
+    results[i] = {"ea": ea, "ee": ee, 
+        "p": angles, "g": (ea, ee)}
+
+dict_a = {}
+dict_e = {}
+for key, r in results.items():
+    a = dict_a.get(r["p"][0], [])
+    a.append(((r["p"],r["g"])))
+    dict_a[r["p"][0]] = a
+
+    e = dict_e.get(r["p"][1], [])
+    e.append(((r["p"],r["g"])))
+    dict_e[r["p"][1]] = e
+
+class_width = 10
+n_classes = 180 // class_width
+
+_dict_a_cl = {}
+_dict_e_cl = {}
+
+dict_a_cl = {}
+dict_e_cl = {}
+
+for azi, values in dict_a.items():
+    # get the errors from the given angle
+    _dict_a_cl[azi] = {n:[] for n in range(n_classes)}
+    dict_a_cl[azi] = {n:-1 for n in range(n_classes)}
+    for value in values:
+        if value[0][-1] == 180: continue
+        _dict_a_cl[azi][value[0][-1]//class_width].append(value[1])
+    for ele in _dict_a_cl[azi]:
+        dict_a_cl[azi][ele] = [np.mean([a[0] if a else np.inf for a in _dict_a_cl[azi][ele]]),
+                              np.mean([a[1] if a else np.inf for a in _dict_a_cl[azi][ele]])]
+
+
+# plot errors with and without the error means
+e = []
+e_m = []
+for i in range(len(_X)):
+    if not (i%100): print(i)
+    angles = b.fast_faoa(_X[i])
+    if angles[1] == 180: continue
+    e.append(angles[0] - az[i])
+    e_m.append((angles[0] - dict_a_cl[angles[0]][angles[1] // class_width][0]) - az[i])
+plt.plot(e)
+plt.show()
+plt.plot(e_m)
+plt.show()
+
+# real data errors
+distance_x = (19.051e-3)/2  # Distance between hydrophones in m
+distance_y = (18.37e-3)/2
+coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+                [distance_x, 0, -distance_y],
+                [distance_x, -8.64e-3, distance_y],
+                [-distance_x, -0.07e-3, distance_y]
+            ))
+
+fs = 192000
+num_samples = 256
+
+bn = bf.Bf(coord, fs, num_samples // 2)
+
+e = []
+e_m = []
+for k in data:
+    a, ele = bn.fast_faoa(np.array(data[k][0]))
+    e.append((a - gab_030719[k][0]))
+    e_m.append(a - dict_a_cl[a][ele // class_width][0] - gab_030719[k][0])
+plt.plot([0]*len(e))
+plt.plot(e, "o-b")
+plt.plot(e_m, "o-r")
+print(np.abs(e).sum())
+print(np.abs(e_m).sum())
+
 # %%
 # train regressors in stacking
 for regressor in regressors:
@@ -259,13 +343,6 @@ for regressor in regressors:
         e.append(ps[0][0] - gab_030719[k][0])
     plt.plot(e, "o-")
     plt.show()
-
-e = []
-for i in range(len(_X_val)):
-    a = b.fast_faoa(_X_val[i])[0]
-    e.append(a - az_val[i])
-plt.plot(e, "-")
-plt.show()
 
 # %%
 # train regressors

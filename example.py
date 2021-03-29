@@ -28,10 +28,10 @@ coord = np.array((
 distance_x = (19.051e-3)/2  # Distance between hydrophones in m
 distance_y = (18.37e-3)/2
 
-# coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-#                          [distance_x, 0, -distance_y],
-#                          [distance_x, -8.64e-3, distance_y],
-#                          [-distance_x, -0.07e-3, distance_y]))
+coord = np.array(([-distance_x, -8.41e-3, -distance_y],
+                         [distance_x, 0, -distance_y],
+                         [distance_x, -8.64e-3, distance_y],
+                         [-distance_x, -0.07e-3, distance_y]))
 
 gab_030719 = {
     "2": (90, 90, 25),"3": (120, 90, 25),"4": (150, 90, 25),"6": (60, 90),"7": (30, 90, 25),
@@ -55,7 +55,7 @@ for i in range(2,21):
 	# if gab_030719[str(i)][0] > 150 or gab_030719[str(i)][0] < 30: continue
 	n =f"0{i}" if i < 10 else str(i) 
 	if i == 5: continue
-	y, fs = sf.read(f'/home/samuel/Sound-Source-Localization/wavs/110118_0{n}.WAV')
+	y, fs = sf.read(f'/home/samuel/Sound-Source-Localization/wavs/030719_0{n}.WAV')
 	y = y[:,:4]	
 	y_ref = y																			
 
@@ -88,8 +88,8 @@ for i in range(2,21):
 		start = time.time()
 		angle = b.fast_faoa(signal)
 		print(i)
-		print("pure frequency fast aoa time", time.time()-start)
 		print("freq fast aoa angles:", angle)
+		
 		
 		err.append(angle[0] - gab_030719[str(i)][0])
 		# z.append(angle[0])
