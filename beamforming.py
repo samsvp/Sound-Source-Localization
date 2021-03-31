@@ -127,61 +127,6 @@ class Bf:
 		return angles
 
 
-	def s_aoa(self, signal, f_weight=1, s_weight=1):
-		def interpolate(y:np.ndarray) -> CubicSpline:
-			"""
-			Returns the cubic spline for a given signal y
-			"""
-			x = np.arange(len(y))
-			cs = CubicSpline(x, y)
-			return cs
-
-		angles = self.aoa(signal, bf=self.fdsb, delays=self.fast_freq_delays)
-
-		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
-		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
-		el_lower_bound = self.time_skip * min(angles[1])-self.time_skip
-		el_upper_bound = self.time_skip * max(angles[1])+self.time_skip
-
-		if el_lower_bound < 0: el_lower_bound = 0
-		if az_lower_bound < 0: az_lower_bound = 0
-
-		delays = self.time_delays_s[
-					az_lower_bound:az_upper_bound,
-					el_lower_bound:el_upper_bound,
-					:
-				]
-
-		css = [interpolate(signal[:,i]) for i in range(4)]
-		x = np.arange(len(signal))
-		shifted_signal = [ [ [
-					css[i](x + d)
-					for i,d in enumerate(dly) ]
-					for dly in delay ]
-					for delay in delays ]
-
-		# print(np.array(shifted_signal).shape)
-		squared_conv_stime = ((np.sum(shifted_signal,axis=2))**2).sum(-1)
-
-		#### freq ####
-		freq_delays = self.freq_delays[:,:,
-					az_lower_bound:az_upper_bound,
-					el_lower_bound:el_upper_bound 
-				]
-
-		squared_conv_freq = self.fdsb(signal, delays=freq_delays)
-
-		squared_conv = s_weight * squared_conv_stime/np.max(squared_conv_stime) + f_weight * squared_conv_freq/np.max(squared_conv_freq)
-
-		# import visual_beamforming as vbf
-		# squared_conv = self.fdsb(signal, delays=delays)
-		# vbf.plot_squared_conv(squared_conv, show=True)
-
-		angles = np.where(squared_conv == squared_conv.max())
-		az_offset, el_offset = angles[0], angles[1]
-		return (az_lower_bound + az_offset, el_lower_bound + el_offset)
-	
-
 	def fast_aoa(self, signal):
 		"""
         Fast delay-and-sum beamforming.
