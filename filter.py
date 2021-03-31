@@ -13,6 +13,7 @@ from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor, V
     AdaBoostRegressor, RandomForestClassifier, AdaBoostClassifier
 import stacking as stk
 import beamforming as bf
+from utils import gab_110118, gab_030719, data, data_ipqm, plot_error, choose_coord
 from generate_dataset import create_audio_generator, generate_training_set
 
 
@@ -49,24 +50,7 @@ def score_regression(clf, X, y):
 
 
 # %%
-# Create dataset
-distance_x = (19.051e-3)/2  # Distance between hydrophones in m
-distance_y = (18.37e-3)/2
-coord = np.array(([-distance_x, -8.41e-3, -distance_y],
-                [distance_x, 0, -distance_y],
-                [distance_x, -8.64e-3, distance_y],
-                [-distance_x, -0.07e-3, distance_y]
-            ))
-
-# distance     = 3 * 10**-2 # Distance between hydrophones in m
-
-# # XY matrix of the hydrophone coordinates
-# coord = np.array((
-#         [0,0,distance],
-#         [0,0,0],
-#         [0,0,-distance],
-#         [-distance,0,0]
-#     ))
+coord = choose_coord(ipqm=False)
 
 fs = 192000
 num_samples = 256

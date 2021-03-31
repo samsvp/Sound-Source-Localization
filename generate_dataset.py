@@ -1,3 +1,4 @@
+# %%
 import random
 import numpy as np
 from simulator_hydrophone_audio import AudioGenerator
@@ -33,3 +34,4 @@ def generate_all_angles(audio_generator: AudioGenerator, f=5000, add_noise=True,
                 for az in range(181) for el in range(181)
             ])
     return X, y
+# %%
