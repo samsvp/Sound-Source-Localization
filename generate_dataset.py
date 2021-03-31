@@ -23,3 +23,13 @@ def generate_training_set(size: int, audio_generator: AudioGenerator, angles_ran
         append_X(signals)
 
     return X, y
+
+def generate_all_angles(audio_generator: AudioGenerator, f=5000, add_noise=True, target_snr_db=10) -> \
+                        Tuple[List[np.ndarray], List[Tuple[int, int]]]:
+    X, y = zip(*[
+                    (audio_generator.simulate_signals(az, el, 
+                        f=f, add_noise=add_noise, target_snr_db=target_snr_db),
+                    (az, el))
+                for az in range(181) for el in range(181)
+            ])
+    return X, y
