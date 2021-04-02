@@ -69,7 +69,7 @@ for csv_file in ["2019/metadata_dev/split1_ir0_ov1_1.csv",
     gab[csv_name] = {}
     with open(csv_file) as f:
         reader = csv.reader(f)
-        gab[csv_name].update({str(i-1): (180 - int(row[-2]), 90 - int(row[-3])) 
+        gab[csv_name].update({str(i-1): (180 - int(row[-2]), 90 - int(row[-3]), row[0]) 
             for i, row in enumerate(reader) if i != 0})
 # %%
 def moving_average(x, w):
@@ -83,4 +83,17 @@ fs = 48000
 num_samples = 256
 
 b = Bf(coord, fs, num_samples)
+# %%
+errors = {}
+for dt in data:
+    print(dt)
+    for n in data[dt]:
+        x = np.array(data[dt][n])
+        m = np.argmax(x[:10000,0])
+        angles = b.fast_faoa(x[m-128:m+128,:])
+        class_name = gab[dt][n][2]
+        class_error = errors.get(class_name, [])
+        class_error.append((angles[0]-gab[dt][n][0], angles[1]-gab[dt][n][1]))
+        errors[class_name] = class_error
+        print(n, (angles[0]-gab[dt][n][0], angles[1]-gab[dt][n][1]))
 # %%
