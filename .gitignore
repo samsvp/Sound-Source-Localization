@@ -2,6 +2,7 @@
 .vscode
 # Preprocessed json files
 2019/metadata_dev/*.json
+2019_data/*.pickle
 # Wav files
 *.WAV
 *.wav
@@ -138,3 +139,4 @@ dmypy.json
 
 # test file
 test.py
+
