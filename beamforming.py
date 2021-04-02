@@ -1,3 +1,4 @@
+# %%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from __future__ import division
@@ -8,12 +9,12 @@ import numpy as np
 
 class Bf:
 
-	def __init__(self, coord, fs, num_samples, time_skip=8):
-		sound_speed  = 1491.24 # m/s
+	def __init__(self, coord, fs, num_samples, phi=(0,181), theta=(0,361), time_skip=8):
+		sound_speed  = 343 # m/s
 		
 		# Delay matrix builder
-		self.phi = np.deg2rad(np.arange(0,181)).reshape(1,181)
-		self.theta = np.deg2rad(np.arange(0, 181)).reshape(181,1)
+		self.phi = np.deg2rad(np.arange(*phi)).reshape(1, phi[-1])
+		self.theta = np.deg2rad(np.arange(*theta)).reshape(theta[-1],1)
 
 		spherical_coords = np.concatenate( 
 									(
@@ -176,3 +177,5 @@ class Bf:
 		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
 
 		return azimuth, elevation
+
+# %%
