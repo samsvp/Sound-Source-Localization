@@ -1,3 +1,6 @@
+# WIP Error Correction Beamforming
+We are currently working on ways to get better angle of arrival results using the beamforming with error correction techniques. The initial results can be found on this [colab](https://colab.research.google.com/drive/128x7nEmxwqgsZOJ4lMjV5xkMgLnW3B4C?usp=sharing)
+
 # Fast Angle of Arrival
 
 The fast angle of arrival is an implementation of the frequency domain beamforming and time domain beamforming algorithms to localizate one sound source in an environment.
