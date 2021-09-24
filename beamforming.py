@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import time
 import numpy as np
-from numpy.core.numeric import moveaxis
+from typing import Callable, Tuple
 
 
 class Bf:
 
-	def __init__(self, coord, fs, num_samples, speed,  phi=(0,181), theta=(0,361), time_skip=8):
+	def __init__(self, coord: np.ndarray, fs: int, num_samples:int,
+			speed: float,  phi=(0,181), theta=(0,361), time_skip=8):
 		self.speed  = speed # m/s
 		
 		# Delay matrix builder
@@ -59,7 +59,7 @@ class Bf:
 		self.num_samples = num_samples  # Number of samples to read
 
 
-	def dsb(self, signal, **kwargs):
+	def dsb(self, signal:np.ndarray, **kwargs) -> np.ndarray:
 		"""
         Time domain delay-and-sum beamforming.
         Convolves the given signal with the respective coordinates delay
@@ -81,7 +81,7 @@ class Bf:
 		return squared_conv
 
 	
-	def fdsb(self, signal, **kwargs):
+	def fdsb(self, signal: np.ndarray, **kwargs) -> np.ndarray:
 		"""
         Frequency domain delay-and-sum beamforming.
         Multiplies the signal and delays on the frequency domain
@@ -110,7 +110,7 @@ class Bf:
 		return squared_conv
 
 
-	def fast_fdsb(self, signals, delays):
+	def fast_fdsb(self, signals: np.ndarray, delays: np.ndarray) -> np.ndarray:
 		"""
 		A faster implementation of fdsb
 		"""
@@ -122,7 +122,7 @@ class Bf:
 		return squared_conv
 	
 
-	def aoa(self, signal, bf, **kwargs):
+	def aoa(self, signal: np.ndarray, bf: Callable, **kwargs) -> np.ndarray:
 		"""
 		Returns the possible angles of arrival given by the beamforming algorithm
 		"""
@@ -141,7 +141,7 @@ class Bf:
 		return angles
 		
 	
-	def fast_aoa(self, signal):
+	def fast_aoa(self, signal: np.ndarray) -> Tuple[int, int]:
 		"""
         Fast delay-and-sum beamforming.
         Applies the time domain beamforming to the signal to get the area
@@ -171,7 +171,7 @@ class Bf:
 		return azimuth, elevation
 
 	
-	def fast_faoa(self, signal):
+	def fast_faoa(self, signal: np.ndarray) -> Tuple[int, int]:
 		"""
         Fast delay-and-sum beamforming.
         Applies the frequency domain beamforming to the signal to get the area
@@ -201,7 +201,7 @@ class Bf:
 		return azimuth, elevation
 
 	
-	def parallel_fast_aoa(self, fsignal: np.ndarray) -> np.ndarray:
+	def parallel_fast_aoa(self, fsignal: np.ndarray) -> Tuple[int, int]:
 		"""
 		Runs the beamforming on multiple signals at the same time
 		This is an optimized version of fast_faoa to use on big
