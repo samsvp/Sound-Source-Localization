@@ -10,7 +10,7 @@ plt.rcParams['xtick.bottom'] = plt.rcParams['xtick.labelbottom'] = False
 plt.rcParams['xtick.top'] = plt.rcParams['xtick.labeltop'] = True
 
 
-def plot_squared_conv(squared_conv, show=False):
+def plot_squared_conv(squared_conv: np.ndarray, show=False) -> None:
 	"""
 	Plots a heat map of the squared convolution given by the beamforming algorithm
 	"""
@@ -20,11 +20,15 @@ def plot_squared_conv(squared_conv, show=False):
 	if show: plt.show()
 
 
-def show():
+def show() -> None:
+	"""
+	Shows plots
+	"""
 	plt.show()
 
 
-def sensor_response(coords, fs=192e+3, angles=(0,90), amount_to_read = 128, show=True):
+def sensor_response(coords: np.ndarray, fs=192e+3, angles=(0,90), 
+		amount_to_read = 128, show=True) -> None:
 	"""
 	Visualizes the sensor array response to a cossine wave
 	which hits the sensors at the same time
@@ -43,13 +47,16 @@ def sensor_response(coords, fs=192e+3, angles=(0,90), amount_to_read = 128, show
 	plot_squared_conv(squared_conv, show=show)
 
 
-def _create_cos(t=0.1, f=20e+2, fs=192e+3, A=1):
+def _create_cos(t=0.1, f=20e+2, fs=192e+3, A=1) -> np.ndarray:
+	"""
+	Creates a cosine wave with the given parameters
+	"""
 	samples = np.arange(t * fs) / fs
 	signal = A * np.cos(2 * np.pi * f * samples)
 	return signal
 
 
-def plot_array(coords):
+def plot_array(coords) -> None:
 	"""
 	Plots the sensor coordinates
 	""" 
@@ -57,7 +64,7 @@ def plot_array(coords):
 	ax = Axes3D(fig)
 
 	for c in coords:
-			ax.scatter(c[0],c[1],c[2])
+		ax.scatter(c[0],c[1],c[2])
 	
 	plt.show()
 	
