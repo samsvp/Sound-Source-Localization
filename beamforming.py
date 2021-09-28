@@ -178,7 +178,7 @@ class Bf:
 		with the highest rms, then applies the frequency domain beamforming
 		to get the right angles
 		"""
-		angles = self.aoa(signal, bf=self.fast_fdsb, delays=self.fast_freq_delays)
+		angles = self.aoa(signal, bf=self.fdsb, delays=self.fast_freq_delays)
 
 		az_lower_bound = self.time_skip * min(angles[0])-self.time_skip 
 		az_upper_bound = self.time_skip * max(angles[0])+self.time_skip
@@ -194,48 +194,65 @@ class Bf:
 				]
 
 		# Apply the frequency domain beamforming
-		az_offset, el_offset = (a[0] for a in self.aoa(signal, bf=self.fast_fdsb, delays=delays))
+		az_offset, el_offset = (a[0] for a in self.aoa(signal, bf=self.fdsb, delays=delays))
 
 		azimuth, elevation = (az_lower_bound + az_offset, el_lower_bound + el_offset)
 
 		return azimuth, elevation
 
 	
-	def parallel_fast_aoa(self, fsignal: np.ndarray) -> Tuple[int, int]:
+	def parallel_fast_aoa(self, fsignal: np.ndarray, batches=4) -> Tuple[int, int]:
 		"""
 		Runs the beamforming on multiple signals at the same time
 		This is an optimized version of fast_faoa to use on big
 		signals
 		"""
 		moving_average = lambda x, N: np.convolve(x, np.ones(N)/N, mode='same')
+		new_shape = (fsignal.shape[0] // self.num_samples, self.num_samples, fsignal.shape[1])
+		signals = fsignal[:new_shape[0]*new_shape[1],:].reshape(*new_shape)
+		Signals = np.fft.fft(signals, axis=1)[:, :self.num_samples // 2, :]
 
 		def get_angles(signals: np.ndarray, delays: np.ndarray) -> np.ndarray:
-			"""
-			Returns the angles from the frequency delay and sum beamforming
-			"""
-			squared_conv = self.fast_fdsb(signals, delays)
+			
+			squared_convs = None
+			n = signals.shape[-2] // batches + 1 if signals.shape[-2] % batches else signals.shape[-2] // batches
+			for i in range(batches):
+				mdelays = delays[:,:,:,n*i:n*(i+1),:]
+				fconv = signals[:,:,None,:] @ (
+					mdelays.reshape(
+						mdelays.shape[0] ,signals.shape[1], 4, mdelays.shape[-2]*mdelays.shape[-1]
+					)
+				)
 
-			_angles = [ np.where(squared_conv[...,i] == squared_conv[...,i].max())
-				for i in range(squared_conv.shape[-1])]
+				conv = np.fft.ifft(fconv, axis=1).real[:,:,0,:]
+				
+				squared_conv = (conv.reshape(
+					signals.shape[0], signals.shape[1], mdelays.shape[-2]*mdelays.shape[-1], 1
+				).transpose(0,2,3,1) @ conv.reshape(
+					signals.shape[0], signals.shape[1], 1, mdelays.shape[-2]*mdelays.shape[-1]
+				).transpose(0,3,1,2))
+				
+				squared_conv = squared_conv.reshape(signals.shape[0],mdelays.shape[-2],mdelays.shape[-1])
+				squared_convs = squared_conv if squared_convs is None \
+					else np.concatenate((squared_convs, squared_conv), axis=1)
+
+			squared_convs = squared_convs.transpose(1,2,0)
+
+			_angles = [ np.where(squared_convs[...,i] == squared_convs[...,i].max())
+				for i in range(squared_convs.shape[-1])]
 			
 			angles = np.array([[a[0][0], a[1][0]] for a in _angles]).T
 
 			return angles
 
 		def get_signal_indexes(angle: np.ndarray) -> np.ndarray:
-			"""
-			Applies moving average to angles count and return
-			the most returned angle
-			"""
 			u, c = np.unique(angle, return_counts=1)
 			return u[np.argmax(moving_average(c,10))]
 
-		new_shape = (fsignal.shape[0]//self.num_samples, self.num_samples, fsignal.shape[1])
-		signals = fsignal[:new_shape[0]*new_shape[1],:].reshape(*new_shape)
-		Signals = np.fft.fft(signals, axis=1)[:, :self.num_samples // 2, :]
+		az, el = get_angles(Signals, self.fast_freq_delays[None,...])
 
-		az, el = get_angles(Signals, self.fast_freq_delays)
-		
+		# almost there, but not quite
+		# moving average is fucking it up
 		az_lower_bound = self.time_skip * az - self.time_skip 
 		az_upper_bound = self.time_skip * az + self.time_skip
 		el_lower_bound = self.time_skip * el - self.time_skip
@@ -255,15 +272,14 @@ class Bf:
 		az_lower_bound[az_upper_bound > self.freq_delays.shape[-2]] = \
 			self.freq_delays.shape[-2] - az_max_diff
 
-		delays = [self.freq_delays[:,:,
+		delays = np.array([self.freq_delays[:,:,
 			az_lower_bound[i]: az_upper_bound[i],
 			el_lower_bound[i]: el_upper_bound[i] 
-		] for i in range(az_lower_bound.shape[0])]
+		] for i in range(az_lower_bound.shape[0])])
 
+		
 		# Apply the frequency domain beamforming
-		offsets = np.array([get_angles(Signals[i:i+1,...], delays[i])
-			for i in range(len(delays))])[...,0]
+		offsets = get_angles(Signals, delays)
 
-		return (get_signal_indexes(az_lower_bound + offsets[:,0]),
-				get_signal_indexes(el_lower_bound + offsets[:,1]))
-
+		return (get_signal_indexes(az_lower_bound + offsets[0,:]),
+				get_signal_indexes(el_lower_bound + offsets[1,:]))
