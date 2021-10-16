@@ -218,19 +218,25 @@ class Bf:
 			n = signals.shape[-2] // batches + 1 if signals.shape[-2] % batches else signals.shape[-2] // batches
 			for i in range(batches):
 				mdelays = delays[:,:,:,n*i:n*(i+1),:]
-				fconv = signals[:,:,None,:] @ (
-					mdelays.reshape(
-						mdelays.shape[0] ,signals.shape[1], 4, mdelays.shape[-2]*mdelays.shape[-1]
+				# we should have mdelays be the right shape out of the box
+				mdelays_reshaped = mdelays.reshape(
+						mdelays.shape[0], signals.shape[1], signals.shape[2], mdelays.shape[-2]*mdelays.shape[-1]
 					)
-				)
+				fconv = signals[:,:,None,:] @ mdelays_reshaped # (signals * mdelays_reshaped).sum(1)
 
 				conv = np.fft.ifft(fconv, axis=1).real[:,:,0,:]
-				
-				squared_conv = (conv.reshape(
+
+				# we could reshape signals and mdelays to make one of the convs have the right shape
+				conv_1 = conv.reshape(
 					signals.shape[0], signals.shape[1], mdelays.shape[-2]*mdelays.shape[-1], 1
-				).transpose(0,2,3,1) @ conv.reshape(
+				).transpose(0,2,3,1) # note that transpose and reshape are not equal
+				conv_2 = conv.reshape(
 					signals.shape[0], signals.shape[1], 1, mdelays.shape[-2]*mdelays.shape[-1]
-				).transpose(0,3,1,2))
+				).transpose(0,3,1,2)
+
+				# same as (conv_signal ** 2).sum(0)
+				# but much faster
+				squared_conv = conv_1 @ conv_2 
 				
 				squared_conv = squared_conv.reshape(signals.shape[0],mdelays.shape[-2],mdelays.shape[-1])
 				squared_convs = squared_conv if squared_convs is None \
